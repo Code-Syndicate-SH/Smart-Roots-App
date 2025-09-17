@@ -679,4 +679,7 @@
   <component name="GithubDefaultAccount">
     <option name="defaultAccountId" value="84ab06bc-6efe-4863-8062-46ede949ed0a" />
   </component>
+  <component name="ProjectRootManager">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
 </project>
