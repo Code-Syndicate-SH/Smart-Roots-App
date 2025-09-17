@@ -1,4 +1,4 @@
-name: Android CI + CodeQL
+name: Android CI + CodeQL (Root Build)
 
 on:
   push:
@@ -9,9 +9,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  PROJECT_DIR: Smart-Roots-App   # <-- your Android project folder
 
 jobs:
   build-test:
@@ -35,37 +32,32 @@ jobs:
 
       - name: Gradle wrapper permissions
         run: chmod +x ./gradlew
-        working-directory: ${{ env.PROJECT_DIR }}
 
-      - name: Print tool versions (debug)
-        run: |
-          ./gradlew --version
-          sdkmanager --version
-          adb --version || true
-        working-directory: ${{ env.PROJECT_DIR }}
+      # Helpful diagnostics so you can see the exact module names
+      - name: List Gradle projects
+        run: ./gradlew projects
 
-      - name: Assemble Debug
-        run: ./gradlew :app:assembleDebug --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+      - name: Assemble Debug (root build)
+        run: ./gradlew assembleDebug --no-daemon
 
-      - name: Run Unit Tests
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+      - name: Run Unit Tests (root build)
+        run: ./gradlew testDebugUnitTest --no-daemon
 
 
-      - name: Upload Debug APK
+      # Artifact globs are module-agnostic
+      - name: Upload Debug APK(s)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          name: debug-apks
+          path: "**/build/outputs/apk/debug/*.apk"
 
-      - name: Upload Unit Test Report
+      - name: Upload Unit Test Report(s)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-report
-          path: ${{ env.PROJECT_DIR }}/app/build/reports/tests/testDebugUnitTest
+          name: unit-test-reports
+          path: "**/build/reports/tests/testDebugUnitTest"
 
   codeql:
     name: CodeQL Analyze
@@ -94,22 +86,18 @@ jobs:
 
       - name: Gradle wrapper permissions
         run: chmod +x ./gradlew
-        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: java-kotlin
 
-      - name: Assemble Debug for CodeQL DB
-        run: ./gradlew :app:assembleDebug --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+      # Build & (optionally) test so CodeQL indexes compiled sources
+      - name: Assemble Debug for CodeQL DB (root build)
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Run Unit Tests (CodeQL context)
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+        run: ./gradlew testDebugUnitTest --no-daemon
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
-
- 
