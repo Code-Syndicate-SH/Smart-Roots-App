@@ -1,4 +1,4 @@
-name: Android CI + CodeQL
+name: Android CI + CodeQL (Auto-detect Gradle Wrapper)
 
 on:
   push:
@@ -9,9 +9,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  PROJECT_DIR: Smart-Roots-App   # <-- your Android project folder
 
 jobs:
   build-test:
@@ -33,39 +30,53 @@ jobs:
       - name: Install Android SDK
         uses: android-actions/setup-android@v3
 
+      # Detect where gradlew is (root vs Smart-Roots-App or other)
+      - name: Detect Gradle wrapper directory
+        shell: bash
+        run: |
+          if [ -f "./gradlew" ]; then
+            echo "WRAPPER_DIR=." >> "$GITHUB_ENV"
+          elif [ -f "./Smart-Roots-App/gradlew" ]; then
+            echo "WRAPPER_DIR=Smart-Roots-App" >> "$GITHUB_ENV"
+          else
+            echo "❌ gradlew not found at repo root or Smart-Roots-App/"
+            echo "Repository tree:"
+            ls -la
+            exit 1
+          fi
+          echo "Using WRAPPER_DIR=$WRAPPER_DIR"
+
       - name: Gradle wrapper permissions
         run: chmod +x ./gradlew
-        working-directory: ${{ env.PROJECT_DIR }}
+        working-directory: ${{ env.WRAPPER_DIR }}
 
-      - name: Print tool versions (debug)
-        run: |
-          ./gradlew --version
-          sdkmanager --version
-          adb --version || true
-        working-directory: ${{ env.PROJECT_DIR }}
+      - name: List Gradle projects
+        run: ./gradlew projects
+        working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Assemble Debug
-        run: ./gradlew :app:assembleDebug --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Run Unit Tests
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+        run: ./gradlew testDebugUnitTest --no-daemon
+        working-directory: ${{ env.WRAPPER_DIR }}
 
 
-      - name: Upload Debug APK
+      # Artifacts (module-agnostic)
+      - name: Upload Debug APK(s)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
+          name: debug-apks
+          path: "**/build/outputs/apk/debug/*.apk"
 
-      - name: Upload Unit Test Report
+      - name: Upload Unit Test Report(s)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: unit-test-report
-          path: ${{ env.PROJECT_DIR }}/app/build/reports/tests/testDebugUnitTest
+          name: unit-test-reports
+          path: "**/build/reports/tests/testDebugUnitTest"
 
   codeql:
     name: CodeQL Analyze
@@ -92,9 +103,24 @@ jobs:
       - name: Install Android SDK
         uses: android-actions/setup-android@v3
 
+      # Re-detect wrapper in this job too
+      - name: Detect Gradle wrapper directory
+        shell: bash
+        run: |
+          if [ -f "./gradlew" ]; then
+            echo "WRAPPER_DIR=." >> "$GITHUB_ENV"
+          elif [ -f "./Smart-Roots-App/gradlew" ]; then
+            echo "WRAPPER_DIR=Smart-Roots-App" >> "$GITHUB_ENV"
+          else
+            echo "❌ gradlew not found at repo root or Smart-Roots-App/"
+            ls -la
+            exit 1
+          fi
+          echo "Using WRAPPER_DIR=$WRAPPER_DIR"
+
       - name: Gradle wrapper permissions
         run: chmod +x ./gradlew
-        working-directory: ${{ env.PROJECT_DIR }}
+        working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
@@ -102,14 +128,12 @@ jobs:
           languages: java-kotlin
 
       - name: Assemble Debug for CodeQL DB
-        run: ./gradlew :app:assembleDebug --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+        run: ./gradlew assembleDebug --no-daemon
+        working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Run Unit Tests (CodeQL context)
-        run: ./gradlew :app:testDebugUnitTest --no-daemon
-        working-directory: ${{ env.PROJECT_DIR }}
+        run: ./gradlew testDebugUnitTest --no-daemon
+        working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
-
- 
