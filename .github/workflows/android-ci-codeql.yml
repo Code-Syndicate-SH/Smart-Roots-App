@@ -1,18 +1,19 @@
+name: Android CI + CodeQL
+
 on:
   push:
-    branches: ["feature/", "task/"]
+    branches: ["feature/**", "task/**"]
   pull_request:
     branches: ["main"]
-  workflow_dispatch: {}  # allows manually triggering (used for emulator job)
+  workflow_dispatch: {}
 
-# Default minimal permissions; jobs set extras if needed
 permissions:
   contents: read
 
+env:
+  PROJECT_DIR: Smart-Roots-App   # <-- your Android project folder
+
 jobs:
-  # -----------------------------
-  # Build, Unit Tests, Artifacts
-  # -----------------------------
   build-test:
     name: Build & Unit Tests
     runs-on: ubuntu-latest
@@ -34,49 +35,43 @@ jobs:
 
       - name: Gradle wrapper permissions
         run: chmod +x ./gradlew
+        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Print tool versions (debug)
         run: |
           ./gradlew --version
           sdkmanager --version
           adb --version || true
+        working-directory: ${{ env.PROJECT_DIR }}
 
-      # Build + unit tests (fast feedback)
       - name: Assemble Debug
         run: ./gradlew :app:assembleDebug --no-daemon
+        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Run Unit Tests
         run: ./gradlew :app:testDebugUnitTest --no-daemon
+        working-directory: ${{ env.PROJECT_DIR }}
 
-      # (Optional) static checks
-      # - name: Android Lint
-      #   run: ./gradlew :app:lintDebug --no-daemon
-      # - name: Detekt (if configured)
-      #   run: ./gradlew detekt --no-daemon
 
-      # Artifacts for easy download from CI
       - name: Upload Debug APK
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
 
       - name: Upload Unit Test Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
-          path: app/build/reports/tests/testDebugUnitTest
+          path: ${{ env.PROJECT_DIR }}/app/build/reports/tests/testDebugUnitTest
 
-  # -----------------------------
-  # CodeQL (Kotlin/Java)
-  # -----------------------------
   codeql:
     name: CodeQL Analyze
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: build-test   # ensures code builds before we analyze
+    needs: build-test
 
     permissions:
       actions: read
@@ -99,19 +94,22 @@ jobs:
 
       - name: Gradle wrapper permissions
         run: chmod +x ./gradlew
+        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: java-kotlin
 
-      # Build so CodeQL can index compiled sources
       - name: Assemble Debug for CodeQL DB
         run: ./gradlew :app:assembleDebug --no-daemon
+        working-directory: ${{ env.PROJECT_DIR }}
 
-      # Optional: run tests during CodeQL build phase (helps flow/type coverage)
       - name: Run Unit Tests (CodeQL context)
         run: ./gradlew :app:testDebugUnitTest --no-daemon
+        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+
+ 
