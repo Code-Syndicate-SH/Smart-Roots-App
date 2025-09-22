@@ -174,7 +174,7 @@ fun NavAppHost(
     componentViewModel: ComponentViewModel,
     readingViewModel: ReadingViewModel
 ) {
-    NavHost(navController = navController, startDestination = Destination.Fred.route) {
+    NavHost(navController = navController, startDestination = Destination.Home.route) {
         composable(Destination.Home.route) {
             HomeScreen(
                 viewModel = sensorViewModel,
