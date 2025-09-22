@@ -34,9 +34,18 @@ import com.example.smarthydro.viewmodels.ComponentViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
 
+// ⬇️ NEW: Koin imports
+import com.example.smarthydro.chat.di.fredModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext
+import org.koin.core.context.startKoin
+
+import com.example.smarthydro.chat.FredScreen
+
 sealed class Destination(val route: String) {
     object Home : Destination("home")
     object ViewData : Destination("viewData")
+    object Fred : Destination("Fred")
 }
 
 class MainActivity : ComponentActivity() {
@@ -56,8 +65,21 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ⬇️ NEW: Start Koin here (only once per process)
+        if (GlobalContext.getOrNull() == null) {
+            startKoin {
+                androidContext(application)
+                modules(
+                    // add your other modules here if you have them
+                    fredModule
+                )
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
@@ -71,9 +93,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun pushNotification(context: Context, title: String, message: String, isSilent: Boolean = false) {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            return
-        }
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+            != PackageManager.PERMISSION_GRANTED
+        ) return
 
         val CHANNEL_ID = "sensor_alerts"
         val NOTIFICATION_ID = 1
@@ -106,7 +128,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun buildNotification(context: Context, channelId: String, title: String, message: String, isSilent: Boolean): NotificationCompat.Builder {
+    private fun buildNotification(
+        context: Context,
+        channelId: String,
+        title: String,
+        message: String,
+        isSilent: Boolean
+    ): NotificationCompat.Builder {
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.logo)
             .setContentTitle(title)
@@ -115,9 +143,9 @@ class MainActivity : ComponentActivity() {
             .setSound(if (isSilent) Uri.EMPTY else Uri.parse("android.resource://${context.packageName}/${R.raw.water_flow}"))
     }
 
-    private fun isPermissionNotificationShown(): Boolean {
-        return getSharedPreferences("notification_prefs", Context.MODE_PRIVATE).getBoolean("permission_notification_shown", false)
-    }
+    private fun isPermissionNotificationShown(): Boolean =
+        getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
+            .getBoolean("permission_notification_shown", false)
 
     private fun setPermissionNotificationShown(shown: Boolean) {
         getSharedPreferences("notification_prefs", Context.MODE_PRIVATE).edit().apply {
@@ -126,9 +154,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun isNotificationShown(notificationId: Int): Boolean {
-        return getSharedPreferences("notification_prefs", Context.MODE_PRIVATE).getBoolean("notification_shown_$notificationId", false)
-    }
+    private fun isNotificationShown(notificationId: Int): Boolean =
+        getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
+            .getBoolean("notification_shown_$notificationId", false)
 
     private fun setNotificationShown(notificationId: Int, shown: Boolean) {
         getSharedPreferences("notification_prefs", Context.MODE_PRIVATE).edit().apply {
@@ -146,7 +174,7 @@ fun NavAppHost(
     componentViewModel: ComponentViewModel,
     readingViewModel: ReadingViewModel
 ) {
-    NavHost(navController = navController, startDestination = Destination.Home.route) {
+    NavHost(navController = navController, startDestination = Destination.Fred.route) {
         composable(Destination.Home.route) {
             HomeScreen(
                 viewModel = sensorViewModel,
@@ -160,24 +188,21 @@ fun NavAppHost(
                 componentViewModel,
                 readingViewModel = readingViewModel,
                 sensorViewModel = sensorViewModel,
-
             )
         }
-        composable("NoteScreen") {
-            NoteScreen(navController = navController)
-        }
-        composable("WriteToNote") {
-            WriteToNote()
-        }
-        composable("ViewNotes") {
-            ViewNotes()
-        }
+        composable("NoteScreen") { NoteScreen(navController = navController) }
+        composable("WriteToNote") { WriteToNote() }
+        composable("ViewNotes") { ViewNotes() }
         composable(
             route = "CameraStreamScreen/{url}",
             arguments = listOf(navArgument("url") { defaultValue = "http://192.168.1.108/viewer" })
         ) { backStackEntry ->
             val url = Uri.decode(backStackEntry.arguments?.getString("url")) ?: "http://192.168.1.108/viewer"
             CameraStreamScreen(url = url)
+        }
+
+        composable(Destination.Fred.route) {
+            FredScreen()
         }
     }
 }
