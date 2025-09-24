@@ -49,6 +49,11 @@ android {
 }
 
 dependencies {
+    // Used to work with tflite files
+    implementation("org.tensorflow:tensorflow-lite-task-vision:0.4.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.9.0")
+
     // Vico chart library for Jetpack Compose and view system.
     implementation "com.patrykandpatrick.vico:core:1.6.5"
     implementation "com.patrykandpatrick.vico:compose:1.6.5"
