@@ -33,7 +33,7 @@ import com.example.smarthydro.ui.theme.analyzer.ImageAnalyzer
 
 
 @Composable
-fun AgeCameraScreen(context: Context, navigateToHomeScreen:()->Unit ) {
+fun AgeCameraScreen(context: Context, navigateToHomeScreen: () -> Unit) {
     var classifications by remember { mutableStateOf(emptyList<Classification>()) }
     val analyzer = remember {
         ImageAnalyzer(
@@ -53,7 +53,7 @@ fun AgeCameraScreen(context: Context, navigateToHomeScreen:()->Unit ) {
         }
     }
     LaunchedEffect(classifications.isNotEmpty<Classification>()) {
-        if(classifications.size>0 && classifications[0].age>0){
+        if (classifications.size > 0 && classifications[0].age > 0) {
             navigateToHomeScreen()
         }
     }
@@ -69,7 +69,7 @@ fun AgeCameraScreen(context: Context, navigateToHomeScreen:()->Unit ) {
         ) {
             classifications.forEach {
                 Text(
-                    text = it.age_class + " " + it.score, modifier = Modifier
+                    text = it.age.toString() + " " + it.score, modifier = Modifier
                         .width(300.dp)
                         .background(
                             MaterialTheme.colorScheme.primaryContainer
