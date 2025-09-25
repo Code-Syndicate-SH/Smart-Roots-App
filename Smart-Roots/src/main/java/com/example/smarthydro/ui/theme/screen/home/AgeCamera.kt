@@ -52,8 +52,8 @@ fun AgeCameraScreen(context: Context, navigateToHomeScreen:()->Unit ) {
             setImageAnalysisAnalyzer(ContextCompat.getMainExecutor(context), analyzer)
         }
     }
-    LaunchedEffect(classifications.isNotEmpty()) {
-        if(classifications[0].age>0){
+    LaunchedEffect(classifications.isNotEmpty<Classification>()) {
+        if(classifications.size>0 && classifications[0].age>0){
             navigateToHomeScreen()
         }
     }
