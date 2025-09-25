@@ -1,7 +1,8 @@
 package com.example.smarthydro.domain
 
-data class Classification (
+data class Classification(
 
-val name:String,
-val score:Float // the score the model gives
+    val age: Int,
+    val age_class: String,
+    val score: Float,// the score the model gives
 )

@@ -8,6 +8,6 @@ interface AgeClassifier {
      * @param bitmap:Bitmap
      * @param rotation:Int
      */
-    fun classify(bitmap: Bitmap, rotation:Int):List<Classification>
+    fun classify(bitmap: Bitmap, rotation:Int, topK: Int=1):List<Classification>
 
 }

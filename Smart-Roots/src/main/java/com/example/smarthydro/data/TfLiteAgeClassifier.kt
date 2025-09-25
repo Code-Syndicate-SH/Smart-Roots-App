@@ -5,11 +5,15 @@ import android.graphics.Bitmap
 import android.view.Surface
 import com.example.smarthydro.domain.AgeClassifier
 import com.example.smarthydro.domain.Classification
+import org.tensorflow.lite.Interpreter
+import org.tensorflow.lite.InterpreterApi
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.task.core.BaseOptions
 import org.tensorflow.lite.task.core.vision.ImageProcessingOptions
 import org.tensorflow.lite.task.vision.classifier.ImageClassifier
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 
 /**
@@ -18,63 +22,91 @@ import org.tensorflow.lite.task.vision.classifier.ImageClassifier
  * @param context:Context
  * @param threshold:Float
  */
-class TfLiteAgeClassifier(
-    private val context: Context,
-    private val threshold: Float = 0.5f,
-    private val maxResults: Int = 1, // closest related Landmark, we could show more
-) : AgeClassifier {
+class TfLiteLandmarkClassifier(
+    private val context: Context
+): AgeClassifier   {
 
-    private var classifier: ImageClassifier? = null
+    private var interpreter: InterpreterApi? = null
+    private val imgSize = 128
+    private val numClasses = 9
 
-    /**
-     * This sets up the base classifier with some base options
-     * Using the .tflite file for reference
-     */
-    private fun setupClassifier() {
-        val baseOptions = BaseOptions.builder()
-            .setNumThreads(2)
-            .build()
-        val options = ImageClassifier.ImageClassifierOptions.builder()
-            .setBaseOptions(baseOptions)
-            .setMaxResults(maxResults)
-            .setScoreThreshold(threshold)
-            .build()
-
-        try {
-            classifier = ImageClassifier.createFromFileAndOptions(
-                context,
-                "age_model.tflite",
-                options
-            ) // here we passs in context and the file we use as a model
-        } catch (e: IllegalStateException) {
-            e.printStackTrace()
-        }
+    init {
+        interpreter = Interpreter(loadModelFile("age_model.tflite"))
     }
 
-    override fun classify(bitmap: Bitmap, rotation: Int): List<Classification> {
-        if (classifier == null) {
-            setupClassifier()
-        }
-        val imageProcessor = ImageProcessor.Builder().build()
-        val tensorImage = imageProcessor.process(TensorImage.fromBitmap(bitmap))
-        val imageProcessingOptions = ImageProcessingOptions.builder()
-            .setOrientation(getOrientationFromRotation(rotation))
-            .build()
-        val results = classifier?.classify(tensorImage,imageProcessingOptions)
-        return results?.flatMap { classifications->       // creates a list
-            classifications.categories.map { category->   // maps each category that will be of type Classification
-                Classification(name = category.displayName, score = category.score )
+
+    override fun classify(bitmap: Bitmap, rotation: Int, topK: Int): List<Classification> {
+        val input = preprocess(bitmap)
+        val output = Array(1) { FloatArray(numClasses) }
+
+        interpreter?.run(input, output)
+
+        val scores = output[0]
+
+        return scores
+            .mapIndexed { idx, score ->
+                Classification(
+                    age = idx,
+                    age_class = mapAgeClass(idx),
+                    score = score
+                )
             }
-        }?.distinctBy { it.name  }?:emptyList()  // makes sure there no duplicate for the category names as this model has duplicates
+            .filter { it.score>=0.55f }
+            .sortedByDescending { it.score }
+            .take(topK)
     }
 
-    private fun getOrientationFromRotation(rotation: Int): ImageProcessingOptions.Orientation {
-        return when (rotation) {
-            Surface.ROTATION_270 -> ImageProcessingOptions.Orientation.BOTTOM_RIGHT
-            Surface.ROTATION_90 -> ImageProcessingOptions.Orientation.TOP_LEFT
-            Surface.ROTATION_180 -> ImageProcessingOptions.Orientation.RIGHT_BOTTOM
-            else-> ImageProcessingOptions.Orientation.RIGHT_TOP
-        }
+    private fun preprocess(bitmap: Bitmap): ByteBuffer {
+        val scaledBitmap = Bitmap.createScaledBitmap(bitmap, imgSize, imgSize, true)
+        val inputBuffer = ByteBuffer.allocateDirect(4 * imgSize * imgSize * 3) // float32
+        inputBuffer.order(ByteOrder.nativeOrder())
 
+        val pixels = IntArray(imgSize * imgSize)
+        scaledBitmap.getPixels(pixels, 0, imgSize, 0, 0, imgSize, imgSize)
+
+        var pixelIndex = 0
+        for (y in 0 until imgSize) {
+            for (x in 0 until imgSize) {
+                val pixel = pixels[pixelIndex++]
+
+                val r = ((pixel shr 16) and 0xFF) / 255.0f
+                val g = ((pixel shr 8) and 0xFF) / 255.0f
+                val b = (pixel and 0xFF) / 255.0f
+
+                inputBuffer.putFloat(r)
+                inputBuffer.putFloat(g)
+                inputBuffer.putFloat(b)
+            }
+        }
+        return inputBuffer
+    }
+
+    private fun loadModelFile(filename: String): ByteBuffer {
+        val assetFileDescriptor = context.assets.openFd(filename)
+        val inputStream = assetFileDescriptor.createInputStream()
+        val fileBytes = ByteArray(assetFileDescriptor.declaredLength.toInt())
+        inputStream.read(fileBytes)
+        inputStream.close()
+
+        val buffer = ByteBuffer.allocateDirect(fileBytes.size)
+        buffer.order(ByteOrder.nativeOrder())
+        buffer.put(fileBytes)
+        buffer.rewind()
+        return buffer
+    }
+
+    private fun mapAgeClass(bucket: Int): String {
+        return when (bucket) {
+            0 -> "0–9"
+            1 -> "10–19"
+            2 -> "20–29"
+            3 -> "30–39"
+            4 -> "40–49"
+            5 -> "50–59"
+            6 -> "60–69"
+            7 -> "70–79"
+            8 -> "80–89"
+            else -> "Unknown"
+        }
     }
 }
