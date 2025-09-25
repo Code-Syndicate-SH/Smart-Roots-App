@@ -2,16 +2,10 @@ package com.example.smarthydro.data
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.view.Surface
 import com.example.smarthydro.domain.AgeClassifier
 import com.example.smarthydro.domain.Classification
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.InterpreterApi
-import org.tensorflow.lite.support.image.ImageProcessor
-import org.tensorflow.lite.support.image.TensorImage
-import org.tensorflow.lite.task.core.BaseOptions
-import org.tensorflow.lite.task.core.vision.ImageProcessingOptions
-import org.tensorflow.lite.task.vision.classifier.ImageClassifier
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -22,9 +16,9 @@ import java.nio.ByteOrder
  * @param context:Context
  * @param threshold:Float
  */
-class TfLiteLandmarkClassifier(
-    private val context: Context
-): AgeClassifier   {
+class TfLiteAgeClassifier(
+    private val context: Context,
+) : AgeClassifier {
 
     private var interpreter: InterpreterApi? = null
     private val imgSize = 128
@@ -51,7 +45,7 @@ class TfLiteLandmarkClassifier(
                     score = score
                 )
             }
-            .filter { it.score>=0.55f }
+            .filter { it.score >= 0.85f }
             .sortedByDescending { it.score }
             .take(topK)
     }
