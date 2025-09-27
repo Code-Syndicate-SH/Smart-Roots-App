@@ -5,41 +5,37 @@ import android.graphics.BitmapFactory
 import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
+import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
+import androidx.camera.core.impl.ImageOutputConfig
 import com.example.smarthydro.domain.AgeClassifier
 import com.example.smarthydro.domain.Classification
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.face.Face
+import com.google.mlkit.vision.face.FaceDetection
 import java.io.ByteArrayOutputStream
 
 /**
  * This analyzer will get called for each frame
  */
-class ImageAnalyzer(
+class AgeImageAnalyzer(
     private val classifier: AgeClassifier,
-    private val onResults: (List<Classification>) -> Unit,
+
+    private val onAgeResults: (List<Classification>) -> Unit,
 ) : ImageAnalysis.Analyzer {
     private var frameSkipCounter = 0
 
     /**
-     * - Retrieves the image rotation degrees.
-     * - Converts the input `ImageProxy` to a `Bitmap`.
-     * - Crops the `Bitmap` to a 321x321 center square.
-     * - Classifies the cropped `Bitmap` using the `classifier`.
-     * - Invokes the `onResults` callback with the classification results.
-     * - Closes the `ImageProxy`.
-     * Additionally, a `frameSkipCounter` has been introduced
-     * to process only every 60th frame, optimizing performance.
+     * - This is a chained analyzer calling from the face analyzer
      */
-    override fun analyze(image: ImageProxy) {
-        if (frameSkipCounter % 60 == 0) {
-            val rotationDegrees = image.imageInfo.rotationDegrees
-            val bitmap = image.toBitmap().centerCrop(321, 321)
-            val results = classifier.classify(bitmap, rotationDegrees)
-            onResults(results)
-
+    fun analyze(faceBitmap: Bitmap, rotation: Int) {
+        try {
+            val result = classifier.classify(faceBitmap, rotation)
+            onAgeResults(result)
+        } catch (e: Exception) {
+            Log.e("ageAnalyzer", "Error classifying age", e)
         }
-        frameSkipCounter++
-        image.close()
     }
 
     /**
@@ -69,6 +65,10 @@ class ImageAnalyzer(
         yuvImage.compressToJpeg(Rect(0, 0, width, height), 100, out)
         val jpegBytes = out.toByteArray()
         return BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.size)
+    }
+
+    override fun analyze(p0: ImageProxy) {
+        TODO("Not yet implemented")
     }
 }
 
