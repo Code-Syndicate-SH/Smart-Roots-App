@@ -19,6 +19,9 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+        aaptOptions {
+            noCompress "tflite"
+        }
     }
 
     buildTypes {
@@ -49,6 +52,20 @@ android {
 }
 
 dependencies {
+// face detection
+    implementation 'com.google.mlkit:face-detection:16.1.7'
+    //
+    implementation("androidx.camera:camera-core:1.2.2")
+    implementation("androidx.camera:camera-lifecycle:1.2.2")
+    implementation("androidx.camera:camera-video:1.2.2")
+
+    implementation("androidx.camera:camera-view:1.2.2")
+    implementation ("androidx.camera:camera-extensions:1.2.2")
+    // Used to work with tflite files
+    implementation("org.tensorflow:tensorflow-lite-task-vision:0.4.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu-delegate-plugin:0.4.0")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.9.0")
+    implementation ("org.tensorflow:tensorflow-lite:2.14.0")
     // Vico chart library for Jetpack Compose and view system.
     implementation "com.patrykandpatrick.vico:core:1.6.5"
     implementation "com.patrykandpatrick.vico:compose:1.6.5"
