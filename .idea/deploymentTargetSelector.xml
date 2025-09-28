@@ -4,6 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="Smart-Roots">
         <option name="selectionMode" value="DROPDOWN" />
+
         <DropdownSelection timestamp="2025-09-18T19:00:34.238638800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
@@ -12,6 +13,7 @@
           </Target>
         </DropdownSelection>
         <DialogSelection />
+
       </SelectionState>
     </selectionStates>
   </component>

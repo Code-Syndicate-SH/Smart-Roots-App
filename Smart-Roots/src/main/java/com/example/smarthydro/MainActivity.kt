@@ -25,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.smarthydro.ui.theme.SmartHydroTheme
+import com.example.smarthydro.ui.theme.screen.home.AgeCameraScreen
 import com.example.smarthydro.ui.theme.screen.home.HomeScreen
 import com.example.smarthydro.ui.theme.screen.note.NoteScreen
 import com.example.smarthydro.ui.theme.screen.note.ViewNotes
@@ -34,6 +35,7 @@ import com.example.smarthydro.ui.theme.screen.viewData.SpeedTestScreen
 import com.example.smarthydro.viewmodels.ComponentViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
+import kotlinx.coroutines.withContext
 
 // ⬇️ NEW: Koin imports
 import com.example.smarthydro.chat.di.fredModule
@@ -47,14 +49,20 @@ import com.example.smarthydro.chat.FredScreen
 sealed class Destination(val route: String) {
     object Home : Destination("home")
     object ViewData : Destination("viewData")
+
+    object AgeCamera: Destination("Age")
+
     object Fred : Destination("Fred")
+
 }
 
 class MainActivity : ComponentActivity() {
     private val sensorViewModel: SensorViewModel by viewModels()
     private val component: ComponentViewModel by viewModels()
     private val reading: ReadingViewModel by viewModels()
-
+    override fun getApplicationContext(): Context? {
+        return super.getApplicationContext()
+    }
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -89,7 +97,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             SmartHydroTheme {
                 val navController = rememberNavController()
-                NavAppHost(navController = navController, sensorViewModel, component, reading)
+                NavAppHost(navController = navController, sensorViewModel, component, reading, applicationContext!!)
             }
         }
     }
@@ -174,9 +182,14 @@ fun NavAppHost(
     navController: NavHostController,
     sensorViewModel: SensorViewModel,
     componentViewModel: ComponentViewModel,
-    readingViewModel: ReadingViewModel
+    readingViewModel: ReadingViewModel,
+    context: Context
 ) {
+
+    NavHost(navController = navController, startDestination = Destination.AgeCamera.route) {
+
     NavHost(navController = navController, startDestination = Destination.Fred.route) {
+
         composable(Destination.Home.route) {
             HomeScreen(
                 viewModel = sensorViewModel,
@@ -203,8 +216,13 @@ fun NavAppHost(
             CameraStreamScreen(url = url)
         }
 
+        composable(route=Destination.AgeCamera.route){
+            AgeCameraScreen(context = context, navigateToHomeScreen = {navController.navigate(Destination.Home.route)})
+
+
         composable(Destination.Fred.route) {
             FredScreen()
+
         }
     }
 }
