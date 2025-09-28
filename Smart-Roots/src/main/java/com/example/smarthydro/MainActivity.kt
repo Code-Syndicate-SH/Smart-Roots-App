@@ -1,5 +1,6 @@
 package com.example.smarthydro
 
+
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -41,6 +42,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 
 import com.example.smarthydro.chat.FredScreen
+
 
 sealed class Destination(val route: String) {
     object Home : Destination("home")
@@ -174,7 +176,7 @@ fun NavAppHost(
     componentViewModel: ComponentViewModel,
     readingViewModel: ReadingViewModel
 ) {
-    NavHost(navController = navController, startDestination = Destination.Home.route) {
+    NavHost(navController = navController, startDestination = Destination.Fred.route) {
         composable(Destination.Home.route) {
             HomeScreen(
                 viewModel = sensorViewModel,

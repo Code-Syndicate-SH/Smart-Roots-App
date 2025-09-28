@@ -1,5 +1,6 @@
 package com.example.smarthydro.chat
 
+import com.example.smarthydro.chat.config.AIAgentConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -19,23 +20,33 @@ class GeminiRestClient(
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    override suspend fun chat(model: String, messages: List<ChatMessage>): String {
+    // 🔧 Now uses config from AIAgentConfig
+    override suspend fun chat(messages: List<ChatMessage>): String {
         val key = apiKeyProvider().orEmpty()
         if (key.isBlank()) return "Gemini API key is missing."
 
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key"
+        val url =
+            "https://generativelanguage.googleapis.com/v1beta/models/${AIAgentConfig.MODEL_NAME}:generateContent?key=$key"
 
-        // 🔧 Map roles to what Gemini expects and drop unsupported ones
+        // 🔧 Inject system prompt at the start
+        val systemMessage = Content(
+            role = "system",
+            parts = listOf(Part(text = AIAgentConfig.SYSTEM_PROMPT))
+        )
+
+        // Map roles to what Gemini expects and drop unsupported ones
         val sanitized = messages.mapNotNull { m ->
             when (m.role.lowercase()) {
                 "user" -> Content(role = "user", parts = listOf(Part(text = m.content)))
                 "assistant", "model" -> Content(role = "model", parts = listOf(Part(text = m.content)))
-                "system" -> null // (optional) handle via systemInstruction later
                 else -> Content(role = "user", parts = listOf(Part(text = m.content)))
             }
         }
 
-        val req = GeminiRequest(contents = sanitized)
+        // 🔧 Always prepend system message
+        val finalMessages = listOf(systemMessage) + sanitized
+
+        val req = GeminiRequest(contents = finalMessages)
 
         val resp: HttpResponse = http.post(url) {
             contentType(ContentType.Application.Json)
