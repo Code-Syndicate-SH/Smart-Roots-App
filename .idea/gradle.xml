@@ -13,6 +13,8 @@
             <option value="$PROJECT_DIR$/Smart-Roots" />
           </set>
         </option>
+        <option name="resolveExternalAnnotations" value="false" />
+
       </GradleProjectSettings>
     </option>
   </component>
