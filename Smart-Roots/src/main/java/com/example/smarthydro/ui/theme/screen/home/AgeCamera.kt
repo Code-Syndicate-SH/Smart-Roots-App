@@ -1,7 +1,6 @@
 package com.example.smarthydro.ui.theme.screen.home
 
 import android.content.Context
-import android.graphics.fonts.FontFamily
 import androidx.camera.core.CameraSelector
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
@@ -29,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -72,58 +70,75 @@ fun AgeCameraScreen(context: Context, navigateToHomeScreen: () -> Unit) {
     }
 
     LaunchedEffect(classifications.isNotEmpty<Classification>()) {
-        if (classifications.size > 0 && classifications[0].age > 0) {
-            navigateToHomeScreen()
+        for (classification in classifications) {
+            if (classifications.size > 0 && classification.age > 0 && classification.score>0.25f) {
+                navigateToHomeScreen()
+            }
         }
     }
-    var displayText = when{
-        classifications.isEmpty() ->"No faces detected, please face the camera"
-        classifications[0]!=null->"Please hold still, almost there"
-        else->"Unknown objects detected, face the camera and hold still"
+    var displayText = when {
+        classifications.isEmpty() -> "No faces detected, please face the camera"
+        classifications[0].age >= 0 -> "Please hold still, almost there"
+        else -> "Unknown objects detected, face the camera and hold still"
     }
-    Column(modifier = Modifier.fillMaxSize().background(Color.Black), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center){
-        Text("Smart Roots", fontStyle = FontStyle.Companion.Italic, fontSize = 20.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,modifier = Modifier)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Smart Roots",
+            fontStyle = FontStyle.Companion.Italic,
+            fontSize = 40.sp,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            modifier = Modifier,
+            color = Color.White
+        )
 
-        AgeCameraPreview(controller = cameraController, modifier = Modifier.fillMaxWidth(0.8f).fillMaxHeight(0.6f))
-        Box(modifier = Modifier.fillMaxWidth(0.6f), contentAlignment = Alignment.BottomCenter){
-
-        }
-
+        AgeCameraPreview(
+            controller = cameraController,
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .fillMaxHeight(0.6f)
+        )
+        Box(modifier = Modifier.fillMaxWidth(0.8f).padding(20.dp).clip(RoundedCornerShape(10.dp)).background(
+            Color.White
+        ), contentAlignment = Alignment.BottomCenter) {
             Text(
                 text = displayText, modifier = Modifier
                     .width(300.dp)
-                    .background(
-                        MaterialTheme.colorScheme.primaryContainer
-                    )
-                    .padding(8.dp),
+                    .padding(8.dp)
+                 ,
                 textAlign = TextAlign.Center,
                 fontSize = 20.sp,
                 color = MaterialTheme.colorScheme.primary
             )
-            classifications.forEach {
-
-
         }
+
+
+
     }
 }
 
 @Composable
 fun AgeCameraPreview(modifier: Modifier, controller: LifecycleCameraController) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    var cameraSelector : CameraSelector = CameraSelector.Builder()
+    var cameraSelector: CameraSelector = CameraSelector.Builder()
         .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
         .build()
-   AndroidView(
-            factory = {
-                PreviewView(it).apply {
-                    this.controller = controller
-                    this.controller?.cameraSelector = cameraSelector
-                    controller.bindToLifecycle(lifecycleOwner)
+    AndroidView(
+        factory = {
+            PreviewView(it).apply {
+                this.controller = controller
+                this.controller?.cameraSelector = cameraSelector
+                controller.bindToLifecycle(lifecycleOwner)
 
-                }
-            },
-            modifier = modifier.clip(RoundedCornerShape(10.dp))
-        )
+            }
+        },
+        modifier = modifier.clip(RoundedCornerShape(10.dp))
+    )
 
 
 }
