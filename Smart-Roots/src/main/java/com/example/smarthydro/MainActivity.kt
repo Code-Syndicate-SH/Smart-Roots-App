@@ -33,6 +33,9 @@ import com.example.smarthydro.ui.theme.screen.viewData.SpeedTestScreen
 import com.example.smarthydro.viewmodels.ComponentViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
+import com.example.smarthydro.aidailyanomaly.worker.Scheduler
+import com.google.firebase.BuildConfig
+
 
 sealed class Destination(val route: String) {
     object Home : Destination("home")
@@ -55,6 +58,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Scheduler.scheduleDaily(this)
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -68,6 +73,22 @@ class MainActivity : ComponentActivity() {
                 NavAppHost(navController = navController, sensorViewModel, component, reading)
             }
         }
+
+        if (BuildConfig.DEBUG) {
+            val wm = androidx.work.WorkManager.getInstance(this)
+            com.example.smarthydro.aidailyanomaly.AiDailyConfig.DEVICES.forEach { device ->
+                val data = androidx.work.Data.Builder()
+                    .putString("mac", device.mac)
+                    .putString("label", device.label)
+                    .build()
+                wm.enqueue(
+                    androidx.work.OneTimeWorkRequestBuilder<
+                            com.example.smarthydro.aidailyanomaly.worker.AnomalyCheckWorker
+                            >().setInputData(data).build()
+                )
+            }
+        }
+
     }
 
     private fun pushNotification(context: Context, title: String, message: String, isSilent: Boolean = false) {
