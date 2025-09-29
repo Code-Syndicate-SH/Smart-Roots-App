@@ -17,7 +17,7 @@ android {
         versionName "2.0 by LeeTech (PTY) Ltd"
 
         // ⚠️ Key is embedded for local testing. Consider rotating/moving to proxy for prod.
-        buildConfigField "String", "GEMINI_API_KEY", "\"AIzaSyCmXSNFIc-234d-Q1q5m6Ta52g4hB9gYO4\""
+        buildConfigField "String", "GEMINI_API_KEY", "\"pastehere\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

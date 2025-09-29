@@ -186,9 +186,8 @@ fun NavAppHost(
     context: Context
 ) {
 
-    NavHost(navController = navController, startDestination = Destination.AgeCamera.route) {
+    NavHost(navController = navController, startDestination = Destination.Home.route) {
 
-    NavHost(navController = navController, startDestination = Destination.Fred.route) {
 
         composable(Destination.Home.route) {
             HomeScreen(
@@ -212,14 +211,19 @@ fun NavAppHost(
             route = "CameraStreamScreen/{url}",
             arguments = listOf(navArgument("url") { defaultValue = "http://192.168.1.108/viewer" })
         ) { backStackEntry ->
-            val url = Uri.decode(backStackEntry.arguments?.getString("url")) ?: "http://192.168.1.108/viewer"
+            val url = Uri.decode(backStackEntry.arguments?.getString("url"))
+                ?: "http://192.168.1.108/viewer"
             CameraStreamScreen(url = url)
         }
 
-        composable(route=Destination.AgeCamera.route){
-            AgeCameraScreen(context = context, navigateToHomeScreen = {navController.navigate(Destination.Home.route)})
+        composable(route = Destination.AgeCamera.route) {
+            AgeCameraScreen(
+                context = context,
+                navigateToHomeScreen = { navController.navigate(Destination.Home.route) })
 
 
+
+        }
         composable(Destination.Fred.route) {
             FredScreen()
 
