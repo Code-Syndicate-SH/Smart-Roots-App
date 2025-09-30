@@ -254,7 +254,7 @@ fun NavAppHost(
     context: Context,
 ) {
 
-    NavHost(navController = navController, startDestination = Destination.Home.route) {
+    NavHost(navController = navController, startDestination = Destination.AgeCamera.route) {
 
 
         composable(Destination.Home.route) {
@@ -294,7 +294,7 @@ fun NavAppHost(
             AgeCameraScreen(context = context, navigateToHomeScreen = {
                 val hapticFeedback = HapticFeedback()
                 hapticFeedback(context)
-                navController.navigate(Destination.AgeCamera.route) {
+                navController.navigate(Destination.Home.route) {
                     popUpTo(Destination.AgeCamera.route)
                 }
             })
