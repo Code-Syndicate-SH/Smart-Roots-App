@@ -5,7 +5,7 @@ import com.example.smarthydro.services.ComponentService
 
 class ComponentRepository {
     private val componentService = ComponentService.buildService()
-    private val componentService2 = ComponentService.buildService2()
+    private val remoteComponentService = ComponentService.remoteService()
     suspend fun toggleLight() {
         return componentService.toggleLight()
     }
@@ -46,44 +46,10 @@ class ComponentRepository {
         return componentService.toggleFan()
     }
 
-    //The following functions are defined so that the second url can be used here
-    suspend fun toggleLight2() {
-        return componentService2.toggleLight2()
+    //The following functions are defined so that the second url can be used here - 2024
+    // these have been removed in 2025
+    suspend fun toggleComponent(id:String){
+        return remoteComponentService.toggleComponent(id)
     }
 
-    suspend fun togglePump2() {
-        return componentService2.togglePump2()
-    }
-
-    suspend fun toggleExtractor2() {
-        return componentService2.toggleExtractor2()
-    }
-
-    suspend fun ec2() {
-        return componentService2.ec2()
-    }
-
-    suspend fun ecUp2() {
-        return componentService2.ecUp2()
-    }
-
-    suspend fun ecDown2() {
-        return componentService2.ecDown2()
-    }
-
-    suspend fun ph2() {
-        return componentService2.pH2()
-    }
-
-    suspend fun phUp2() {
-        return componentService2.pHUp2()
-    }
-
-    suspend fun phDown2() {
-        return componentService2.pHDown2()
-    }
-
-    suspend fun toggleFan2() {
-        return componentService2.toggleFan2()
-    }
 }
