@@ -294,7 +294,7 @@ fun NavAppHost(
             AgeCameraScreen(context = context, navigateToHomeScreen = {
                 val hapticFeedback = HapticFeedback()
                 hapticFeedback(context)
-                navController.navigate(Destination.Home.route) {
+                navController.navigate(Destination.AgeCamera.route) {
                     popUpTo(Destination.AgeCamera.route)
                 }
             })
