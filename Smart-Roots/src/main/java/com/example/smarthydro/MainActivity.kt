@@ -1,5 +1,6 @@
 package com.example.smarthydro
 
+
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -35,11 +36,25 @@ import com.example.smarthydro.ui.theme.screen.viewData.SpeedTestScreen
 import com.example.smarthydro.viewmodels.ComponentViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
+import kotlinx.coroutines.withContext
+
+// ⬇️ NEW: Koin imports
+import com.example.smarthydro.chat.di.fredModule
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext
+import org.koin.core.context.startKoin
+
+import com.example.smarthydro.chat.FredScreen
+
 
 sealed class Destination(val route: String) {
     object Home : Destination("home")
     object ViewData : Destination("viewData")
-    object AgeCamera : Destination("Age")
+
+    object AgeCamera: Destination("Age")
+
+    object Fred : Destination("Fred")
+
 }
 
 class MainActivity : ComponentActivity() {
@@ -84,12 +99,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // ⬇️ NEW: Start Koin here (only once per process)
+        if (GlobalContext.getOrNull() == null) {
+            startKoin {
+                androidContext(application)
+                modules(
+                    // add your other modules here if you have them
+                    fredModule
+                )
+            }
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
             if(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)!= PackageManager.PERMISSION_GRANTED){
@@ -231,7 +253,10 @@ fun NavAppHost(
     readingViewModel: ReadingViewModel,
     context: Context,
 ) {
-    NavHost(navController = navController, startDestination = Destination.AgeCamera.route) {
+
+    NavHost(navController = navController, startDestination = Destination.Home.route) {
+
+
         composable(Destination.Home.route) {
             HomeScreen(
                 viewModel = sensorViewModel,
@@ -246,17 +271,11 @@ fun NavAppHost(
                 readingViewModel = readingViewModel,
                 sensorViewModel = sensorViewModel,
 
-                )
+            )
         }
-        composable("NoteScreen") {
-            NoteScreen(navController = navController, context)
-        }
-        composable("WriteToNote") {
-            WriteToNote()
-        }
-        composable("ViewNotes") {
-            ViewNotes()
-        }
+        composable("NoteScreen") { NoteScreen(navController = navController, context) }
+        composable("WriteToNote") { WriteToNote() }
+        composable("ViewNotes") { ViewNotes() }
         composable(
             route = "CameraStreamScreen/{url}",
             arguments = listOf(navArgument("url") { defaultValue = "http://192.168.1.108/viewer" })
@@ -265,6 +284,12 @@ fun NavAppHost(
                 ?: "http://192.168.1.108/viewer"
             CameraStreamScreen(url = url)
         }
+
+        composable(Destination.Fred.route) {
+            FredScreen()
+
+        }
+
         composable(route = Destination.AgeCamera.route) {
             AgeCameraScreen(context = context, navigateToHomeScreen = {
                 val hapticFeedback = HapticFeedback()
@@ -275,5 +300,6 @@ fun NavAppHost(
             })
         }
     }
+    }
 
-}
+
