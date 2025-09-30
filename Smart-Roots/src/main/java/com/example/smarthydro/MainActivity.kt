@@ -24,6 +24,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.smarthydro.domain.HapticFeedback
 import com.example.smarthydro.ui.theme.SmartHydroTheme
 import com.example.smarthydro.ui.theme.screen.home.AgeCameraScreen
 import com.example.smarthydro.ui.theme.screen.home.HomeScreen
@@ -63,13 +64,36 @@ class MainActivity : ComponentActivity() {
     override fun getApplicationContext(): Context? {
         return super.getApplicationContext()
     }
+    private val requestCameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ){isGranted:Boolean->
+        if(isGranted && !hasRequiredCameraPermission()){
+            if (ActivityCompat.checkSelfPermission(
+                    applicationContext!!,
+                    Manifest.permission.CAMERA
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                return@registerForActivityResult
+            }
+
+            setCameraPermission(true)
+        }
+
+    }
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        if (isGranted && !isPermissionNotificationShown()) {
-            pushNotification(this, "Permission Granted", "You can now receive notifications.", isSilent = false)
+        if (isGranted && !isPermissionNotificationShown() ) {
+
+            pushNotification(
+                this,
+                "Permission Granted",
+                "You can now receive notifications.",
+                isSilent = false
+            )
             setPermissionNotificationShown(true)
         }
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,25 +111,53 @@ class MainActivity : ComponentActivity() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)!= PackageManager.PERMISSION_GRANTED){
+                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }
 
         setContent {
             SmartHydroTheme {
                 val navController = rememberNavController()
-                NavAppHost(navController = navController, sensorViewModel, component, reading, applicationContext!!)
+                NavAppHost(
+                    navController = navController,
+                    sensorViewModel,
+                    component,
+                    reading,
+                    applicationContext!!
+                )
             }
         }
     }
 
-    private fun pushNotification(context: Context, title: String, message: String, isSilent: Boolean = false) {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-            != PackageManager.PERMISSION_GRANTED
-        ) return
+    private fun hasRequiredCameraPermission(): Boolean {
+        return getSharedPreferences(
+            "camera_prefs",
+            Context.MODE_PRIVATE
+        ).getBoolean("camera_prefs_shown", false)
+    }
+    private fun setCameraPermission(shown: Boolean){
+        getSharedPreferences("camera_prefs", Context.MODE_PRIVATE).edit().apply {
+            putBoolean("camera_prefs_shown", shown)
+            apply()
+        }
+    }
+    private fun pushNotification(
+        context: Context,
+        title: String,
+        message: String,
+        isSilent: Boolean = false,
+    ) {
+        if (ActivityCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
 
         val CHANNEL_ID = "sensor_alerts"
         val NOTIFICATION_ID = 1
@@ -125,8 +177,10 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = "Sensor Alerts"
             val descriptionText = "Notifications for sensor readings out of range"
-            val importance = if (isSilent) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_HIGH
-            val soundUri = if (isSilent) Uri.EMPTY else Uri.parse("android.resource://${context.packageName}/${R.raw.water_flow}")
+            val importance =
+                if (isSilent) NotificationManager.IMPORTANCE_LOW else NotificationManager.IMPORTANCE_HIGH
+            val soundUri =
+                if (isSilent) Uri.EMPTY else Uri.parse("android.resource://${context.packageName}/${R.raw.water_flow}")
 
             val channel = NotificationChannel(channelId, name, importance).apply {
                 description = descriptionText
@@ -143,7 +197,7 @@ class MainActivity : ComponentActivity() {
         channelId: String,
         title: String,
         message: String,
-        isSilent: Boolean
+        isSilent: Boolean,
     ): NotificationCompat.Builder {
         return NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.logo)
@@ -153,9 +207,12 @@ class MainActivity : ComponentActivity() {
             .setSound(if (isSilent) Uri.EMPTY else Uri.parse("android.resource://${context.packageName}/${R.raw.water_flow}"))
     }
 
-    private fun isPermissionNotificationShown(): Boolean =
-        getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
-            .getBoolean("permission_notification_shown", false)
+    private fun isPermissionNotificationShown(): Boolean {
+        return getSharedPreferences(
+            "notification_prefs",
+            Context.MODE_PRIVATE
+        ).getBoolean("permission_notification_shown", false)
+    }
 
     private fun setPermissionNotificationShown(shown: Boolean) {
         getSharedPreferences("notification_prefs", Context.MODE_PRIVATE).edit().apply {
@@ -164,15 +221,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun isNotificationShown(notificationId: Int): Boolean =
-        getSharedPreferences("notification_prefs", Context.MODE_PRIVATE)
-            .getBoolean("notification_shown_$notificationId", false)
+    private fun isNotificationShown(notificationId: Int): Boolean {
+        return getSharedPreferences(
+            "notification_prefs",
+            Context.MODE_PRIVATE
+        ).getBoolean("notification_shown_$notificationId", false)
+    }
 
     private fun setNotificationShown(notificationId: Int, shown: Boolean) {
         getSharedPreferences("notification_prefs", Context.MODE_PRIVATE).edit().apply {
             putBoolean("notification_shown_$notificationId", shown)
             apply()
         }
+    }
+
+
+    companion object {
+        private val CAMERAX_PERMISSIONS = arrayOf(
+            Manifest.permission.CAMERA,
+
+            )
     }
 }
 
@@ -183,7 +251,7 @@ fun NavAppHost(
     sensorViewModel: SensorViewModel,
     componentViewModel: ComponentViewModel,
     readingViewModel: ReadingViewModel,
-    context: Context
+    context: Context,
 ) {
 
     NavHost(navController = navController, startDestination = Destination.Home.route) {
@@ -202,9 +270,10 @@ fun NavAppHost(
                 componentViewModel,
                 readingViewModel = readingViewModel,
                 sensorViewModel = sensorViewModel,
+
             )
         }
-        composable("NoteScreen") { NoteScreen(navController = navController) }
+        composable("NoteScreen") { NoteScreen(navController = navController, context) }
         composable("WriteToNote") { WriteToNote() }
         composable("ViewNotes") { ViewNotes() }
         composable(
@@ -216,17 +285,21 @@ fun NavAppHost(
             CameraStreamScreen(url = url)
         }
 
-        composable(route = Destination.AgeCamera.route) {
-            AgeCameraScreen(
-                context = context,
-                navigateToHomeScreen = { navController.navigate(Destination.Home.route) })
-
-
-
-        }
         composable(Destination.Fred.route) {
             FredScreen()
 
         }
+
+        composable(route = Destination.AgeCamera.route) {
+            AgeCameraScreen(context = context, navigateToHomeScreen = {
+                val hapticFeedback = HapticFeedback()
+                hapticFeedback(context)
+                navController.navigate(Destination.Home.route) {
+                    popUpTo(Destination.AgeCamera.route)
+                }
+            })
+        }
     }
-}
+    }
+
+

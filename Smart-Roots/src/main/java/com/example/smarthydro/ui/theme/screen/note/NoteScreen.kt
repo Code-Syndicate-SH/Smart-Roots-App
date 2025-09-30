@@ -1,5 +1,6 @@
 package com.example.smarthydro.ui.theme.screen.note
 
+import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,11 +31,12 @@ import coil.decode.GifDecoder
 import coil.request.ImageRequest
 import coil.size.Size
 import com.example.smarthydro.R
+import com.example.smarthydro.domain.HapticFeedback
 import leagueSpartan
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteScreen(navController: NavController) {
+fun NoteScreen(navController: NavController, context: Context) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -64,6 +66,8 @@ fun NoteScreen(navController: NavController) {
             Button(
                 onClick = {
                     //  button click action
+                    val hapticFeedback =  HapticFeedback()
+                    hapticFeedback(context)
                     navController.navigate("WriteToNote")
 
                 },
