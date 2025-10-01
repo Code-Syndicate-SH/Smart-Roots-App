@@ -1,13 +1,17 @@
 package com.example.smarthydro.services
 
+import com.example.smarthydro.models.ComponentModel
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PUT
+import retrofit2.http.Path
 
 private const val BASE_URL = "http://192.168.8.14/"
 
 //The second url is declared here and will be set up to be used by retrofit
-private const val BASE_URL2 = "http://192.168.1.102/"
+private const val BASE_URL2 = "https://smart-roots-server.onrender.com"
 object ComponentService {
     private val retrofit by lazy {
         Retrofit.Builder()
@@ -17,23 +21,40 @@ object ComponentService {
             .create(IComponent::class.java)
     }
     //The second url is set up to be used by retrofit
-    private val retrofit2 by lazy {
+    private val remoteServer by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL2)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(IComponent::class.java)
+            .create(IRemoteComponent::class.java)
     }
 
     fun buildService(): IComponent {
         return retrofit
     }
     //The second url's retrofit val is returned here
-    fun buildService2(): IComponent {
-        return retrofit2
+    fun remoteService(): IRemoteComponent {
+        return remoteServer
     }
 }
+/**
+ *  - @author Shravan ramjathan
+ *  This was created as in 2025 a server was introduced and we  opted not to use
+ *  the old version for remote monitoring, however we did not want to remove the legacy code as
+ *  it is still used for the local network, so only the remote monitoring got a revamp.
+ */
+interface IRemoteComponent{
+  @GET("api/sensors")
+  suspend fun getReadings()
 
+    /**
+     * @param id
+     * - This is actually the macAddress of the tent that the system is originating from
+     * -
+     */
+  @PUT("/api/sensors/toggle/{id}")
+  suspend fun toggleComponent(@Body componentModel: ComponentModel, @Path("id" ) id: String)
+}
 interface IComponent {
     @GET("light")
     suspend fun toggleLight()
