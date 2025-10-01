@@ -186,7 +186,7 @@ fun NavAppHost(
     context: Context
 ) {
 
-    NavHost(navController = navController, startDestination = Destination.AgeCamera.route) {
+    NavHost(navController = navController, startDestination = Destination.Home.route) {
 
 
         composable(Destination.Home.route) {
