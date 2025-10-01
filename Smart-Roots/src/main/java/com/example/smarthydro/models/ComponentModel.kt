@@ -12,13 +12,13 @@ data class ComponentModel(
     @SerializedName("EC")
     val eC: Int = 0,
     @SerializedName("ExtractorFan")
-    val humidity: Int = 0,
+    val extractorFan: Int = 0,
     @SerializedName("Light")
     val light:  Int = 0,
     @SerializedName("pH")
     val pH:  Int = 0,
     @SerializedName("Fan")
-    val temperature:  Int = 0,
+    val fan:  Int = 0,
     @SerializedName("Pump")
     val pump:  Int = 0
 )

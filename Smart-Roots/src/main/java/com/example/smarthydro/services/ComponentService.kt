@@ -1,7 +1,9 @@
 package com.example.smarthydro.services
 
+import com.example.smarthydro.models.ComponentModel
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -51,7 +53,7 @@ interface IRemoteComponent{
      * -
      */
   @PUT("/api/sensors/toggle/{id}")
-  suspend fun toggleComponent(@Path("id") id: String)
+  suspend fun toggleComponent(@Body componentModel: ComponentModel, @Path("id" ) id: String)
 }
 interface IComponent {
     @GET("light")

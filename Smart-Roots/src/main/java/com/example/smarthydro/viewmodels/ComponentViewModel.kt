@@ -3,6 +3,7 @@ package com.example.smarthydro.viewmodels
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smarthydro.models.ComponentModel
 import com.example.smarthydro.repositories.ComponentRepository
 import kotlinx.coroutines.launch
 
@@ -18,8 +19,10 @@ class ComponentViewModel : ViewModel() {
             }
             //the second base url's call is set here
             try {
-
-                repository.toggleLight2()
+                var componentModel = ComponentModel(
+                    light = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("LIGHT ERROR", e.message.toString())
             }
@@ -35,8 +38,10 @@ class ComponentViewModel : ViewModel() {
             }
             //the second base url's call is set here
             try {
-
-                repository.togglePump2()
+                var componentModel = ComponentModel(
+                    pump = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("PUMP ERROR", e.message.toString())
             }
@@ -52,13 +57,16 @@ class ComponentViewModel : ViewModel() {
             }
             //the second base url's call is set here
             try {
-
-                repository.toggleExtractor2()
+                var componentModel = ComponentModel(
+                    extractorFan = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("EXTRACTOR ERROR", e.message.toString())
             }
         }
     }
+
     fun setFan() {
         viewModelScope.launch {
             try {
@@ -69,8 +77,10 @@ class ComponentViewModel : ViewModel() {
             }
             //the second base url's call is set here
             try {
-
-                repository.toggleFan2()
+                var componentModel = ComponentModel(
+                    fan = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("FAN ERROR", e.message.toString())
             }
@@ -86,7 +96,10 @@ class ComponentViewModel : ViewModel() {
             }
             //the second base url's call is set here
             try {
-                repository.ph2()
+                var componentModel = ComponentModel(
+                    pH = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("PH ERROR", e.message.toString())
             }
@@ -103,7 +116,10 @@ class ComponentViewModel : ViewModel() {
 
 //the second base url's call is set here
             try {
-                repository.phUp2()
+                var componentModel = ComponentModel(
+                    pH = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("PH ERROR", e.message.toString())
             }
@@ -119,7 +135,10 @@ class ComponentViewModel : ViewModel() {
             }
             //the second base url's call is set here
             try {
-                repository.phDown2()
+                var componentModel = ComponentModel(
+                    pH = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("PH ERROR", e.message.toString())
             }
@@ -136,7 +155,10 @@ class ComponentViewModel : ViewModel() {
             //the second base url's call is set here
             try {
 
-                repository.ec2()
+                var componentModel = ComponentModel(
+                    eC = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("EC ERROR", e.message.toString())
             }
@@ -153,7 +175,10 @@ class ComponentViewModel : ViewModel() {
             //the second base url's call is set here
             try {
 
-                repository.ecUp2()
+                var componentModel = ComponentModel(
+                    eC = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("EC ERROR", e.message.toString())
             }
@@ -170,7 +195,10 @@ class ComponentViewModel : ViewModel() {
             //the second base url's call is set here
             try {
 
-                repository.ecDown2()
+                var componentModel = ComponentModel(
+                    eC = 1
+                )
+                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
             } catch (e: Exception) {
                 Log.e("EC ERROR", e.message.toString())
             }

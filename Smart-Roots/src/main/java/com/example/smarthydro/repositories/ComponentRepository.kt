@@ -1,5 +1,6 @@
 package com.example.smarthydro.repositories
 
+import com.example.smarthydro.models.ComponentModel
 import com.example.smarthydro.services.ComponentService
 
 
@@ -48,8 +49,8 @@ class ComponentRepository {
 
     //The following functions are defined so that the second url can be used here - 2024
     // these have been removed in 2025
-    suspend fun toggleComponent(id:String){
-        return remoteComponentService.toggleComponent(id)
+    suspend fun toggleComponent(componentModel: ComponentModel, id:String){
+        return remoteComponentService.toggleComponent(componentModel = componentModel, id = id)
     }
 
 }
