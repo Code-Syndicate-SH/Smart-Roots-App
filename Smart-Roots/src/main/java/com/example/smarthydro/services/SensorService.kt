@@ -1,5 +1,6 @@
 package com.example.smarthydro.services
 
+import com.example.smarthydro.models.RemoteSensorModel
 import com.example.smarthydro.models.SensorModel
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -42,7 +43,7 @@ interface ISensors {
 
     //The endpoint for the second url is declared
     @GET("/api/sensors")
-    suspend fun getRemoteSensorData(): SensorModel
+    suspend fun getRemoteSensorData(): RemoteSensorModel
     @GET("getHistoricData")
     suspend fun getHistoricData(): SensorModel
 }

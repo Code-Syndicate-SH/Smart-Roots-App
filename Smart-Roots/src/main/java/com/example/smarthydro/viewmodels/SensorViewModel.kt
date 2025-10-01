@@ -5,6 +5,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smarthydro.models.RemoteSensorModel
 import com.example.smarthydro.models.SensorModel
 import com.example.smarthydro.repositories.SensorRepository
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,8 @@ class SensorViewModel : ViewModel() {
 
     private val _sensorData = MutableLiveData<SensorModel>()
     val sensorData: LiveData<SensorModel> = _sensorData
-
+    private val _remoteSensor = MutableLiveData<SensorModel>()
+    val remoteSensor: LiveData<SensorModel> = _remoteSensor
 
     fun fetchSensorData() {
         viewModelScope.launch {
@@ -27,10 +29,19 @@ class SensorViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e("SENSOR ERROR", e.message.toString())
             }
-            //The second url has been used to get the data in the following try catch block
+            //The second url has been used to get the data in the following try catch block - 2024
+            // now we are making use of the server but still displaying the data in the same manner - 2025
             try {
                 val data2 = repository.getRemoteSensorData()
-                _sensorData.value = data2
+                val sensor  = SensorModel(
+                    eC = data2.eC,
+                    humidity = data2.humidity,
+                    light = data2.light,
+                    pH = data2.pH,
+                    temperature = data2.temperature,
+                    flowRate = data2.flowRate
+                )
+                _sensorData.value = sensor
             } catch (e: Exception) {
                 Log.e("SENSOR ERROR", e.message.toString())
             }
