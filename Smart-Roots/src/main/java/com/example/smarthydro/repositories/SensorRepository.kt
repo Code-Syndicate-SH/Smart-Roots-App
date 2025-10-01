@@ -11,7 +11,7 @@ class SensorRepository {
         return sensorService.getSensorData()
     }
     //the second url's method is defined
-    suspend fun getSensorData2(): SensorModel {
-        return sensorService2.getSensorData2()
+    suspend fun getRemoteSensorData(): SensorModel {
+        return sensorService2.getRemoteSensorData()
     }
 }

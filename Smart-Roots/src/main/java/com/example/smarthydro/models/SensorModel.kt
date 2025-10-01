@@ -4,6 +4,8 @@ package com.example.smarthydro.models
 import com.google.gson.annotations.SerializedName
 
 data class SensorModel(
+    @SerializedName("MacAddress")
+    val macAddress:String="",
     @SerializedName("EC")
     val eC: String = "",
     @SerializedName("Humidity")

@@ -29,7 +29,7 @@ class SensorViewModel : ViewModel() {
             }
             //The second url has been used to get the data in the following try catch block
             try {
-                val data2 = repository.getSensorData2()
+                val data2 = repository.getRemoteSensorData()
                 _sensorData.value = data2
             } catch (e: Exception) {
                 Log.e("SENSOR ERROR", e.message.toString())

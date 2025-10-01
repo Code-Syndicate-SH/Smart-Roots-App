@@ -41,8 +41,8 @@ interface ISensors {
     suspend fun getSensorData(): SensorModel
 
     //The endpoint for the second url is declared
-    @GET("/r/n/r/n")
-    suspend fun getSensorData2(): SensorModel
+    @GET("/api/sensors")
+    suspend fun getRemoteSensorData(): SensorModel
     @GET("getHistoricData")
     suspend fun getHistoricData(): SensorModel
 }
