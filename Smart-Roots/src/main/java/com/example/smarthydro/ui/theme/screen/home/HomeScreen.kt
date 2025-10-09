@@ -235,7 +235,7 @@ fun HomeScreen(
                                     navController.navigate(Destination.Fred.route)
                                 }
                                 feature.isNote -> {
-                                    navController.navigate("notesScreen")
+                                    navController.navigate(Destination.NoteScreen.route)
                                 }
 
                                 else -> {
