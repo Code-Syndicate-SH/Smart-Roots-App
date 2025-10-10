@@ -337,6 +337,7 @@ fun WifiInfoSection(language: String, onToggleLanguage: (String) -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White,
                 modifier = Modifier
+                    .width(100.dp)
                     .padding(1.dp)
                     .clickable { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)) }
             )
