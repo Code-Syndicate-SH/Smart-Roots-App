@@ -11,5 +11,6 @@ data class Feature(
     val darkColor: Color,
     val sensorReading: String,
     val isNote: Boolean = false,
-    val isCamera: Boolean = false
+    val isCamera: Boolean = false,
+    val isChatbot: Boolean  = false
 )

@@ -1,5 +1,6 @@
 package com.example.smarthydro.repositories
 
+import com.example.smarthydro.models.RemoteSensorModel
 import com.example.smarthydro.models.SensorModel
 import com.example.smarthydro.services.SensorService
 
@@ -11,7 +12,7 @@ class SensorRepository {
         return sensorService.getSensorData()
     }
     //the second url's method is defined
-    suspend fun getSensorData2(): SensorModel {
-        return sensorService2.getSensorData2()
+    suspend fun getRemoteSensorData(): RemoteSensorModel {
+        return sensorService2.getRemoteSensorData()
     }
 }
