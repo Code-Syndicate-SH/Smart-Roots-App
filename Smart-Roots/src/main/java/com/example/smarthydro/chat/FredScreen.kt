@@ -11,8 +11,11 @@ fun FredScreen(
     val state = viewModel.ui.collectAsStateWithLifecycle().value
 
     FredChatScreen(
-        messages = state.messages,            // <-- pass UiMsg directly
+        messages = state.messages,
         isThinking = state.sending,
-        onSend = { text -> viewModel.send(text) }
+        onSend = { text -> viewModel.send(text) },
+        onSendImage = { question, imageBytes, mimeType ->
+            viewModel.sendImage(question, imageBytes, mimeType)
+        }
     )
 }
