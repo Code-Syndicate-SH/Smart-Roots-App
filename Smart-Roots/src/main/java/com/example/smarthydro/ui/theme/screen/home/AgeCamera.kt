@@ -71,7 +71,7 @@ fun AgeCameraScreen(context: Context, navigateToHomeScreen: () -> Unit) {
 
     LaunchedEffect(classifications.isNotEmpty<Classification>()) {
         for (classification in classifications) {
-            if (classifications.size > 0 && classification.age > 0 && classification.score>0.25f) {
+            if (classifications.size > 0 && classification.age >= 0 && classification.score>0.25f) {
                 navigateToHomeScreen()
             }
         }
