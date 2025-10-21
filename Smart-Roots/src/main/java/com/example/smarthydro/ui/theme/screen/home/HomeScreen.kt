@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,13 +70,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
+import com.example.smarthydro.Destination
 import com.example.smarthydro.R
 import com.example.smarthydro.models.SensorModel
 import com.example.smarthydro.ui.theme.AutoBlue
@@ -232,7 +231,9 @@ fun HomeScreen(
                                     val encodedUrl = Uri.encode(cameraUrl)
                                     navController.navigate("CameraStreamScreen/$encodedUrl")
                                 }
-
+                                feature.isChatbot->{
+                                    navController.navigate(Destination.Fred.route)
+                                }
                                 feature.isNote -> {
                                     navController.navigate("notesScreen")
                                 }
@@ -501,6 +502,15 @@ private fun getFeatures(sensorData: SensorModel, language: String): List<Feature
     }
     return features + listOf(
         Feature(
+            title = "Chatbot",
+            iconId = R.drawable.ai,
+            mediumColor = Color.Transparent,
+            lightColor = Color.Transparent,
+            darkColor = Color.DarkGray,
+            sensorReading = "",
+            isChatbot = true
+        ),
+        Feature(
             title = "Notes",
             iconId = R.drawable.menu_book_24px,
             mediumColor = Color.Transparent,
@@ -517,7 +527,8 @@ private fun getFeatures(sensorData: SensorModel, language: String): List<Feature
             darkColor = Color.DarkGray,
             sensorReading = "",
             isCamera = true
-        )
+        ),
+
     )
 }
 
