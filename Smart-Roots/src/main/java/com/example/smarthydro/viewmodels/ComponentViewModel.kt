@@ -23,7 +23,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     light = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
@@ -123,7 +123,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     pHDown = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("PH ERROR", e.message.toString())
             }
@@ -145,7 +145,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     eCUp = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
@@ -165,7 +165,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     eCDown = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }

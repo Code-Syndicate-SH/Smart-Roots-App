@@ -47,6 +47,7 @@ import org.koin.core.context.startKoin
 import com.example.smarthydro.chat.FredScreen
 import com.example.smarthydro.ui.theme.screen.home.AppSplashScreen
 import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
+import com.example.smarthydro.viewmodels.ImageViewModel
 
 
 sealed class Destination(val route: String) {
@@ -63,6 +64,7 @@ class MainActivity : ComponentActivity() {
     private val sensorViewModel: SensorViewModel by viewModels()
     private val component: ComponentViewModel by viewModels()
     private val reading: ReadingViewModel by viewModels()
+    private val imageViewModel: ImageViewModel by viewModels()
     override fun getApplicationContext(): Context? {
         return super.getApplicationContext()
     }
