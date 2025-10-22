@@ -151,8 +151,12 @@ fun HomeScreen(
     val sensorData by viewModel.sensorData.observeAsState(SensorModel())
     var language by remember { mutableStateOf("EN") }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel.isLocal) {
+        if(viewModel.isLocal){
         viewModel.fetchSensorPeriodically(GET_SENSOR_DATA_DELAY_MS)
+    }else{
+        viewModel.fetchRemoteSensorData()
+        }
     }
 
     val context = LocalContext.current

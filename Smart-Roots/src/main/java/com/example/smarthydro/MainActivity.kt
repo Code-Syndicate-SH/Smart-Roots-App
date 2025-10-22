@@ -31,7 +31,7 @@ import com.example.smarthydro.ui.theme.screen.home.HomeScreen
 import com.example.smarthydro.ui.theme.screen.note.NoteScreen
 import com.example.smarthydro.ui.theme.screen.note.ViewNotes
 import com.example.smarthydro.ui.theme.screen.note.WriteToNote
-import com.example.smarthydro.ui.theme.screen.stream.CameraStreamScreen
+
 
 import com.example.smarthydro.viewmodels.ComponentViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
@@ -51,8 +51,8 @@ import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
 sealed class Destination(val route: String) {
     object Home : Destination("home")
     object ViewData : Destination("viewData")
-    object NoteScreen: Destination("NoteScreen")
-    object AgeCamera: Destination("Age")
+    object NoteScreen : Destination("NoteScreen")
+    object AgeCamera : Destination("Age")
 
     object Fred : Destination("Fred")
 
@@ -65,10 +65,11 @@ class MainActivity : ComponentActivity() {
     override fun getApplicationContext(): Context? {
         return super.getApplicationContext()
     }
+
     private val requestCameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ){isGranted:Boolean->
-        if(isGranted && !hasRequiredCameraPermission()){
+    ) { isGranted: Boolean ->
+        if (isGranted && !hasRequiredCameraPermission()) {
             if (ActivityCompat.checkSelfPermission(
                     applicationContext!!,
                     Manifest.permission.CAMERA
@@ -84,7 +85,7 @@ class MainActivity : ComponentActivity() {
     private val requestNotificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
-        if (isGranted && !isPermissionNotificationShown() ) {
+        if (isGranted && !isPermissionNotificationShown()) {
 
             pushNotification(
                 this,
@@ -112,10 +113,18 @@ class MainActivity : ComponentActivity() {
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
-            if(ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)!= PackageManager.PERMISSION_GRANTED){
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.CAMERA
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
                 requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             }
         }
@@ -140,12 +149,14 @@ class MainActivity : ComponentActivity() {
             Context.MODE_PRIVATE
         ).getBoolean("camera_prefs_shown", false)
     }
-    private fun setCameraPermission(shown: Boolean){
+
+    private fun setCameraPermission(shown: Boolean) {
         getSharedPreferences("camera_prefs", Context.MODE_PRIVATE).edit().apply {
             putBoolean("camera_prefs_shown", shown)
             apply()
         }
     }
+
     private fun pushNotification(
         context: Context,
         title: String,
@@ -272,19 +283,17 @@ fun NavAppHost(
                 readingViewModel = readingViewModel,
                 sensorViewModel = sensorViewModel,
 
+                )
+        }
+        composable(Destination.NoteScreen.route) {
+            NoteScreen(
+                navController = navController,
+                context
             )
         }
-        composable(Destination.NoteScreen.route) { NoteScreen(navController = navController, context) }
         composable("WriteToNote") { WriteToNote() }
         composable("ViewNotes") { ViewNotes() }
-        composable(
-            route = "CameraStreamScreen/{url}",
-            arguments = listOf(navArgument("url") { defaultValue = "http://192.168.1.108/viewer" })
-        ) { backStackEntry ->
-            val url = Uri.decode(backStackEntry.arguments?.getString("url"))
-                ?: "http://192.168.1.108/viewer"
-            CameraStreamScreen(url = url)
-        }
+
 
         composable(Destination.Fred.route) {
             FredScreen()
@@ -301,6 +310,6 @@ fun NavAppHost(
             })
         }
     }
-    }
+}
 
 
