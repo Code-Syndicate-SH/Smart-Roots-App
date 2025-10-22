@@ -43,7 +43,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     pump = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
@@ -62,7 +62,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     extractorFan = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
@@ -82,7 +82,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     fan = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
@@ -104,7 +104,7 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     pHUp = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "Adding this in the morning")
+                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }

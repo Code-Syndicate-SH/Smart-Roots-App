@@ -54,10 +54,6 @@ object SensorService {
     }
 }
 
-object SensorStream {
-
-}
-
 interface ISensors {
     @GET("/r/n/r/n")
     suspend fun getSensorData(): SensorModel

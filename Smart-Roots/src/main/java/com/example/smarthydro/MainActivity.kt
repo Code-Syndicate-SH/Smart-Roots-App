@@ -45,6 +45,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 
 import com.example.smarthydro.chat.FredScreen
+import com.example.smarthydro.ui.theme.screen.home.AppSplashScreen
 import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
 
 
@@ -53,7 +54,7 @@ sealed class Destination(val route: String) {
     object ViewData : Destination("viewData")
     object NoteScreen : Destination("NoteScreen")
     object AgeCamera : Destination("Age")
-
+    object SplashScreen : Destination("Splash")
     object Fred : Destination("Fred")
 
 }
@@ -266,7 +267,7 @@ fun NavAppHost(
     context: Context,
 ) {
 
-    NavHost(navController = navController, startDestination = Destination.AgeCamera.route) {
+    NavHost(navController = navController, startDestination = Destination.SplashScreen.route) {
 
 
         composable(Destination.Home.route) {
@@ -299,7 +300,9 @@ fun NavAppHost(
             FredScreen()
 
         }
-
+       composable(Destination.SplashScreen.route) {
+           AppSplashScreen(navController)
+       }
         composable(route = Destination.AgeCamera.route) {
             AgeCameraScreen(context = context, navigateToHomeScreen = {
                 val hapticFeedback = HapticFeedback()
