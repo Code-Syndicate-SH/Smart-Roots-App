@@ -39,10 +39,11 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
-// 🧩 Decode Base64 → Bitmap for persistent chat image storage
+// 🧩 Helper: safely decode Base64 to Bitmap for stored chat images
 fun decodeBase64ToBitmap(base64: String): ImageBitmap? {
     return try {
-        val bytes = Base64.decode(base64, Base64.DEFAULT)
+        val cleanBase64 = base64.trim().replace("\n", "")
+        val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
     } catch (e: Exception) {
         null
@@ -97,20 +98,18 @@ fun FredChatScreen(
         )
     }
 
-    // 🧭 Auto-scroll when new messages appear
+    // 🧭 Auto-scroll to bottom when new messages or thinking bubble appear
     LaunchedEffect(messages.size, isThinking) {
         coroutineScope.launch { listState.animateScrollToItem(messages.size) }
     }
 
-    Scaffold(
-        containerColor = Color(0xFF0D0D0D)
-    ) { padding ->
+    Scaffold(containerColor = Color(0xFF0D0D0D)) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 💬 Chat list
+            // 💬 Chat history
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -221,7 +220,7 @@ fun FredChatScreen(
                         when {
                             capturedBitmap != null -> {
                                 val stream = ByteArrayOutputStream()
-                                capturedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+                                capturedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 60, stream) // smaller
                                 val bytes = stream.toByteArray()
                                 val base64 = Base64.encodeToString(bytes, Base64.DEFAULT)
                                 onSendImage(userInput.ifBlank { "Analyze this plant" }, bytes, "image/jpeg")
@@ -266,13 +265,13 @@ fun FredChatScreen(
     }
 }
 
+// 🌿 Fred’s chat bubble with bullet + bold text
 @Composable
 fun ChatBubble(message: String, isUser: Boolean) {
     val bubbleColor = if (isUser) Color(0xFF43A047) else Color(0xFF1E1E1E)
     val textColor = if (isUser) Color.White else Color(0xFFEAEAEA)
     val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
 
-    // 🪶 Smart Markdown-style formatting (bullets + bold)
     val formattedText = remember(message) {
         buildAnnotatedString {
             val lines = message.split("\n")
@@ -307,10 +306,7 @@ fun ChatBubble(message: String, isUser: Boolean) {
         }
     }
 
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = alignment
-    ) {
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
         Card(
             colors = CardDefaults.cardColors(containerColor = bubbleColor),
             shape = RoundedCornerShape(20.dp),
@@ -327,9 +323,18 @@ fun ChatBubble(message: String, isUser: Boolean) {
     }
 }
 
+// 🌱 Display decoded Base64 image in chat
 @Composable
 fun ChatImageBubble(base64: String) {
-    val bitmap = remember(base64) { decodeBase64ToBitmap(base64) }
+    val bitmap = remember(base64) {
+        try {
+            val cleanBase64 = base64.trim().replace("\n", "")
+            val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -352,8 +357,13 @@ fun ChatImageBubble(base64: String) {
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Image unavailable", color = Color.White)
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF2E7D32), RoundedCornerShape(16.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Loading image...", color = Color.White, fontSize = 14.sp)
                 }
             }
         }
