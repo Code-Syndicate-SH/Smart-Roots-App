@@ -9,14 +9,18 @@ import com.google.gson.annotations.SerializedName
  *  0 if they stay the same.
  */
 data class ComponentModel(
-    @SerializedName("EC")
-    val eC: Int = 0,
+    @SerializedName("ECUp")
+    val eCUp: Int = 0,
+    @SerializedName("ECDown")
+    val eCDown: Int = 0,
     @SerializedName("ExtractorFan")
     val extractorFan: Int = 0,
     @SerializedName("Light")
     val light:  Int = 0,
-    @SerializedName("pH")
-    val pH:  Int = 0,
+    @SerializedName("pHUp")
+    val pHUp:  Int = 0,
+    @SerializedName("pHDown")
+    val pHDown:  Int = 0,
     @SerializedName("Fan")
     val fan:  Int = 0,
     @SerializedName("Pump")

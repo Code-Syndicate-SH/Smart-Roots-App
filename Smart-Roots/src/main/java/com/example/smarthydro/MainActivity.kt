@@ -32,7 +32,7 @@ import com.example.smarthydro.ui.theme.screen.note.NoteScreen
 import com.example.smarthydro.ui.theme.screen.note.ViewNotes
 import com.example.smarthydro.ui.theme.screen.note.WriteToNote
 import com.example.smarthydro.ui.theme.screen.stream.CameraStreamScreen
-import com.example.smarthydro.ui.theme.screen.viewData.SpeedTestScreen
+
 import com.example.smarthydro.viewmodels.ComponentViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
@@ -45,12 +45,13 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 
 import com.example.smarthydro.chat.FredScreen
+import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
 
 
 sealed class Destination(val route: String) {
     object Home : Destination("home")
     object ViewData : Destination("viewData")
-
+    object NoteScreen: Destination("NoteScreen")
     object AgeCamera: Destination("Age")
 
     object Fred : Destination("Fred")
@@ -265,7 +266,7 @@ fun NavAppHost(
             )
         }
         composable(Destination.ViewData.route) {
-            SpeedTestScreen(
+            SensorDetailScreen(
                 navController,
                 componentViewModel,
                 readingViewModel = readingViewModel,
@@ -273,7 +274,7 @@ fun NavAppHost(
 
             )
         }
-        composable("NoteScreen") { NoteScreen(navController = navController, context) }
+        composable(Destination.NoteScreen.route) { NoteScreen(navController = navController, context) }
         composable("WriteToNote") { WriteToNote() }
         composable("ViewNotes") { ViewNotes() }
         composable(

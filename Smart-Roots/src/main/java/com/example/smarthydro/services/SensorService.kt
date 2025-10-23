@@ -7,7 +7,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 private const val BASE_URL = "http://192.168.8.14/"
 //The second url is declared below
-private const val BASE_URL2 = "http://192.168.1.102/"
+private const val BASE_URL2 = "https://smart-roots-server.onrender.com"
 object SensorService{
     private val retrofit by lazy {
         Retrofit.Builder()
