@@ -151,8 +151,12 @@ fun HomeScreen(
     val sensorData by viewModel.sensorData.observeAsState(SensorModel())
     var language by remember { mutableStateOf("EN") }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel.isLocal) {
+        if(viewModel.isLocal){
         viewModel.fetchSensorPeriodically(GET_SENSOR_DATA_DELAY_MS)
+    }else{
+        viewModel.fetchRemoteSensorData()
+        }
     }
 
     val context = LocalContext.current
@@ -227,9 +231,8 @@ fun HomeScreen(
                         onClick = {
                             when {
                                 feature.isCamera -> {
-                                    val cameraUrl = "http://192.168.235.20/viewer"
-                                    val encodedUrl = Uri.encode(cameraUrl)
-                                    navController.navigate("CameraStreamScreen/$encodedUrl")
+
+                                    navController.navigate(Destination.Image.route)
                                 }
                                 feature.isChatbot->{
                                     navController.navigate(Destination.Fred.route)
