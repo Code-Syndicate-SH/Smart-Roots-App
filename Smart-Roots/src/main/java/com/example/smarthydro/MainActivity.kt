@@ -46,6 +46,7 @@ import org.koin.core.context.startKoin
 
 import com.example.smarthydro.chat.FredScreen
 import com.example.smarthydro.ui.theme.screen.home.AppSplashScreen
+import com.example.smarthydro.ui.theme.screen.home.ImageScreen
 import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
 import com.example.smarthydro.viewmodels.ImageViewModel
 
@@ -57,6 +58,7 @@ sealed class Destination(val route: String) {
     object AgeCamera : Destination("Age")
     object SplashScreen : Destination("Splash")
     object Fred : Destination("Fred")
+    object Image: Destination("Image")
 
 }
 
@@ -64,7 +66,7 @@ class MainActivity : ComponentActivity() {
     private val sensorViewModel: SensorViewModel by viewModels()
     private val component: ComponentViewModel by viewModels()
     private val reading: ReadingViewModel by viewModels()
-    private val imageViewModel: ImageViewModel by viewModels()
+   private val imageViewModel: ImageViewModel by viewModels()
     override fun getApplicationContext(): Context? {
         return super.getApplicationContext()
     }
@@ -140,7 +142,8 @@ class MainActivity : ComponentActivity() {
                     sensorViewModel,
                     component,
                     reading,
-                    applicationContext!!
+                    context = applicationContext!!,
+                     imageViewModel = imageViewModel
                 )
             }
         }
@@ -266,6 +269,7 @@ fun NavAppHost(
     sensorViewModel: SensorViewModel,
     componentViewModel: ComponentViewModel,
     readingViewModel: ReadingViewModel,
+    imageViewModel: ImageViewModel,
     context: Context,
 ) {
 
@@ -301,6 +305,9 @@ fun NavAppHost(
         composable(Destination.Fred.route) {
             FredScreen()
 
+        }
+        composable(Destination.Image.route){
+            ImageScreen(imageViewModel =imageViewModel )
         }
        composable(Destination.SplashScreen.route) {
            AppSplashScreen(navController)
