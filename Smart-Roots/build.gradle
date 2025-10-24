@@ -5,6 +5,17 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization'
 }
 
+// --- add this tiny helper ---
+def readLocalProp(String name) {
+    def f = rootProject.file("local.properties")
+    if (f.exists()) {
+        def p = new Properties()
+        p.load(new FileInputStream(f))
+        return p.getProperty(name)
+    }
+    return null
+}
+
 android {
     namespace 'com.example.smarthydro'
     compileSdk 34
@@ -16,17 +27,16 @@ android {
         versionCode 2
         versionName "2.0 by LeeTech (PTY) Ltd"
 
-        // ⚠️ Key is embedded for local testing. Consider rotating/moving to proxy for prod.
-        buildConfigField "String", "GEMINI_API_KEY", "\"keyhere\""
+        // ✅ now sourced from local.properties or -P (CI). Keeps same symbol & usage.
+        def geminiFromProject = project.findProperty("GEMINI_API_KEY") as String
+        def geminiFromLocal   = readLocalProp("GEMINI_API_KEY")
+        def geminiApiKey      = geminiFromProject ?: geminiFromLocal ?: ""
+
+        buildConfigField "String", "GEMINI_API_KEY", "\"${geminiApiKey}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables {
-            useSupportLibrary true
-        }
-        aaptOptions {
-            noCompress "tflite"
-        }
-
+        vectorDrawables { useSupportLibrary true }
+        aaptOptions { noCompress "tflite" }
     }
 
     buildTypes {
@@ -40,23 +50,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
+    kotlinOptions { jvmTarget = '1.8' }
     buildFeatures { compose true }
-
-    // ✅ Compose Compiler that matches Kotlin 1.9.22
-    composeOptions {
-        kotlinCompilerExtensionVersion '1.5.10'
-    }
-
-    // Newer AGP style (replaces deprecated packagingOptions)
-    packaging {
-        resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
-        }
-    }
+    composeOptions { kotlinCompilerExtensionVersion '1.5.10' }
+    packaging { resources { excludes += '/META-INF/{AL2.0,LGPL2.1}' } }
 }
 
 dependencies {
