@@ -39,11 +39,11 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
-// 🧩 Helper: safely decode Base64 to Bitmap for stored chat images
+// 🔧 Safe Base64 → Bitmap decoding
 fun decodeBase64ToBitmap(base64: String): ImageBitmap? {
     return try {
-        val cleanBase64 = base64.trim().replace("\n", "")
-        val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
+        val clean = base64.replace("\n", "").replace(" ", "")
+        val bytes = Base64.decode(clean, Base64.DEFAULT)
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
     } catch (e: Exception) {
         null
@@ -66,7 +66,7 @@ fun FredChatScreen(
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // 📸 Camera & Gallery launchers
+    // 📸 Launchers
     val takePhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap -> capturedBitmap = bitmap }
@@ -75,7 +75,7 @@ fun FredChatScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> selectedImageUri = uri }
 
-    // 🪟 Choose image source
+    // 🪟 Picker dialog
     if (showImagePickerDialog) {
         AlertDialog(
             onDismissRequest = { showImagePickerDialog = false },
@@ -98,7 +98,7 @@ fun FredChatScreen(
         )
     }
 
-    // 🧭 Auto-scroll to bottom when new messages or thinking bubble appear
+    // 🧭 Scroll to bottom on update
     LaunchedEffect(messages.size, isThinking) {
         coroutineScope.launch { listState.animateScrollToItem(messages.size) }
     }
@@ -109,7 +109,7 @@ fun FredChatScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 💬 Chat history
+            // 💬 Chat list
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -131,7 +131,7 @@ fun FredChatScreen(
                 }
             }
 
-            // 🖼 Preview before sending
+            // 🖼️ Image preview
             if (capturedBitmap != null || selectedImageUri != null) {
                 Box(
                     modifier = Modifier
@@ -181,7 +181,7 @@ fun FredChatScreen(
                 }
             }
 
-            // 🧑‍🌾 Input area
+            // 🧑‍🌾 Input bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -220,11 +220,17 @@ fun FredChatScreen(
                         when {
                             capturedBitmap != null -> {
                                 val stream = ByteArrayOutputStream()
-                                capturedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 60, stream) // smaller
+                                capturedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 60, stream)
                                 val bytes = stream.toByteArray()
-                                val base64 = Base64.encodeToString(bytes, Base64.DEFAULT)
+                                val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+
+                                // ✅ First send the image to AI
                                 onSendImage(userInput.ifBlank { "Analyze this plant" }, bytes, "image/jpeg")
+
+                                // ✅ Then send the visual message to chat using SAME base64
                                 onSend("image://$base64")
+
+                                // Cleanup
                                 capturedBitmap = null
                                 userInput = ""
                             }
@@ -236,10 +242,12 @@ fun FredChatScreen(
                                 inputStream?.close()
 
                                 if (bytes != null) {
-                                    val base64 = Base64.encodeToString(bytes, Base64.DEFAULT)
+                                    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+
                                     onSendImage(userInput.ifBlank { "Analyze this plant" }, bytes, "image/jpeg")
                                     onSend("image://$base64")
                                 }
+
                                 selectedImageUri = null
                                 userInput = ""
                             }
@@ -260,12 +268,13 @@ fun FredChatScreen(
                         tint = Color.White
                     )
                 }
+
             }
         }
     }
 }
 
-// 🌿 Fred’s chat bubble with bullet + bold text
+// 💬 Bubble with bullet + bold + asterisk cleanup
 @Composable
 fun ChatBubble(message: String, isUser: Boolean) {
     val bubbleColor = if (isUser) Color(0xFF43A047) else Color(0xFF1E1E1E)
@@ -276,37 +285,23 @@ fun ChatBubble(message: String, isUser: Boolean) {
         buildAnnotatedString {
             val lines = message.split("\n")
             for (line in lines) {
+                val cleaned = line.replace("**", "") // remove stray asterisks
                 when {
-                    line.trim().startsWith("* ") || line.trim().startsWith("- ") -> {
+                    cleaned.trim().startsWith("* ") || cleaned.trim().startsWith("- ") -> {
                         append("• ")
-                        append(line.trim().removePrefix("* ").removePrefix("- "))
+                        append(cleaned.trim().removePrefix("* ").removePrefix("- "))
                     }
-                    line.contains("**") -> {
-                        var remaining = line
-                        var bold = false
-                        while (remaining.contains("**")) {
-                            val start = remaining.indexOf("**")
-                            val end = remaining.indexOf("**", start + 2)
-                            if (end == -1) break
-                            val before = remaining.substring(0, start)
-                            val boldText = remaining.substring(start + 2, end)
-                            append(before)
-                            withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(boldText)
-                            }
-                            remaining = remaining.substring(end + 2)
-                            bold = true
-                        }
-                        if (!bold) append(remaining)
-                    }
-                    else -> append(line)
+                    else -> append(cleaned)
                 }
                 append("\n")
             }
         }
     }
 
-    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = alignment
+    ) {
         Card(
             colors = CardDefaults.cardColors(containerColor = bubbleColor),
             shape = RoundedCornerShape(20.dp),
@@ -323,18 +318,17 @@ fun ChatBubble(message: String, isUser: Boolean) {
     }
 }
 
-// 🌱 Display decoded Base64 image in chat
+// 🖼 Display Base64-decoded image safely
 @Composable
 fun ChatImageBubble(base64: String) {
-    val bitmap = remember(base64) {
-        try {
-            val cleanBase64 = base64.trim().replace("\n", "")
-            val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-        } catch (e: Exception) {
-            null
-        }
+    val cleanBase64 = remember(base64) { base64.replace("\n", "").replace(" ", "") }
+
+    // 🧠 Debug log: see if the Base64 string is valid length
+    LaunchedEffect(cleanBase64) {
+        android.util.Log.d("FredChat", "📸 Image string length: ${cleanBase64.length}")
     }
+
+    val bitmap = remember(cleanBase64) { decodeBase64ToBitmap(cleanBase64) }
 
     Box(
         modifier = Modifier
@@ -369,3 +363,4 @@ fun ChatImageBubble(base64: String) {
         }
     }
 }
+
