@@ -46,15 +46,15 @@ import com.example.smarthydro.ui.theme.analyzer.AgeImageAnalyzer
 import com.example.smarthydro.ui.theme.analyzer.FaceImageAnalyzer
 import kotlinx.coroutines.delay
 
-// --- Best Practice: Define UI states for clarity ---
+
 private enum class CameraUiState {
-    Searching, // Looking for a face
-    Analyzing, // Face found, processing
-    Success    // Classification complete
+    Searching,
+    Analyzing,
+    Success
 }
 
 @Composable
-fun AgeCameraScreen(navigateToHomeScreen: () -> Unit) {
+fun AgeCameraScreen(navigateToLoadingScreen: () -> Unit) {
 
     val context = LocalContext.current
 
@@ -65,8 +65,8 @@ fun AgeCameraScreen(navigateToHomeScreen: () -> Unit) {
     var age by remember {
         mutableStateOf(sharedPreferences.getString("age_category", "0"))
     }
-    if(age.toString().isNotEmpty() && age!="0" ){
-       navigateToHomeScreen()
+    if (age.toString().isNotEmpty() && age != "0") {
+        navigateToLoadingScreen()
     }
     val ageImageAnalyzer = remember {
         AgeImageAnalyzer(
@@ -100,12 +100,12 @@ fun AgeCameraScreen(navigateToHomeScreen: () -> Unit) {
         }
     }
 
-    // --- Refactored LaunchedEffect for safe navigation ---
+
     LaunchedEffect(uiState) {
         if (uiState == CameraUiState.Success) {
             // Wait a moment so the user can see the success message
             delay(1500L)
-            navigateToHomeScreen()
+            navigateToLoadingScreen()
         }
     }
 

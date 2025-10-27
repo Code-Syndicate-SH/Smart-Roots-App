@@ -34,6 +34,7 @@ import leagueSpartan
 @Composable
 fun HomeScreen(
     navController: NavController,
+
 ) {
     Column(
         modifier = Modifier

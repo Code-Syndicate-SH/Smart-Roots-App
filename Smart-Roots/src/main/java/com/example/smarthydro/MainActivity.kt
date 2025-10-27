@@ -44,6 +44,7 @@ import com.example.smarthydro.ui.theme.SO_OnSurf_D
 import com.example.smarthydro.ui.theme.SO_Surf_D
 import com.example.smarthydro.ui.theme.SmartHydroTheme
 import com.example.smarthydro.ui.theme.screen.AppBottomBar
+import com.example.smarthydro.ui.theme.screen.NetworkLoadingScreen
 import com.example.smarthydro.ui.theme.screen.home.AgeCameraScreen
 import com.example.smarthydro.ui.theme.screen.home.AppSplashScreen
 import com.example.smarthydro.ui.theme.screen.home.Dashboard
@@ -78,6 +79,7 @@ sealed class Destination(val route: String) {
         fun createRoute(macAddress: String) = "Dashboard/$macAddress"
     }
 
+    object Loading : Destination("Loading")
 
 }
 
@@ -422,12 +424,21 @@ fun NavAppHost(
                     padding = padding
                 )
             }
+            composable(route = Destination.Loading.route) {
+                NetworkLoadingScreen(
+                    onOnlineDetected = {
+                        navController.navigate(Destination.Home.route)
+                    },
+                    onOfflineDetected = {
+                        navController.navigate(Destination.Dashboard.route)
+                    })
+            }
             composable(route = Destination.AgeCamera.route) {
-                AgeCameraScreen(navigateToHomeScreen = {
+                AgeCameraScreen(navigateToLoadingScreen = {
                     val hapticFeedback = HapticFeedback()
                     hapticFeedback(context)
-                    navController.navigate(Destination.Home.route) {
-                        popUpTo(Destination.AgeCamera.route)
+                    navController.navigate(Destination.Loading.route) {
+                        popUpTo(Destination.AgeCamera.route){inclusive = true}
                     }
                 })
             }
