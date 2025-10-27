@@ -52,7 +52,7 @@ import com.example.smarthydro.ui.theme.screen.home.ImageScreen
 import com.example.smarthydro.ui.theme.screen.note.NoteScreen
 import com.example.smarthydro.ui.theme.screen.note.ViewNotes
 import com.example.smarthydro.ui.theme.screen.note.WriteToNote
-import com.example.smarthydro.ui.theme.screen.tent.MainTentScreen
+import com.example.smarthydro.ui.theme.screen.tent.TentSelectionScreen
 import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
 import com.example.smarthydro.viewmodels.ComponentViewModel
 import com.example.smarthydro.viewmodels.ImageViewModel
@@ -78,7 +78,9 @@ sealed class Destination(val route: String) {
     object DashboardWithMac : Destination("Dashboard/{macAddress}") {
         fun createRoute(macAddress: String) = "Dashboard/$macAddress"
     }
-
+    object TentSelection : Destination("TentSelection/{filterType}") {
+        fun createRoute(filterType: String) = "TentSelection/$filterType"
+    }
     object Loading : Destination("Loading")
 
 }
@@ -368,6 +370,18 @@ fun NavAppHost(
 
                     )
             }
+            composable(
+                route = Destination.TentSelection.route,
+                arguments = listOf(navArgument("filterType") { type = NavType.StringType })
+            ) { backStackEntry ->
+                // Extract the filter argument from the route
+                val filter = backStackEntry.arguments?.getString("filterType") ?: ""
+                TentSelectionScreen(
+                    navController = navController,
+                    filterType = filter,
+                    tentViewModel = tentViewModel // Pass the ViewModel instance
+                )
+            }
             composable(Destination.NoteScreen.route) {
                 NoteScreen(
                     navController = navController,
@@ -399,16 +413,11 @@ fun NavAppHost(
                         NavType.StringType
                 })
             ) { backstackEntry ->
-                val macAddress = backstackEntry.arguments?.getString("macAddress")
-                MainTentScreen(
+                val filter = backstackEntry.arguments?.getString("filterType") ?: ""
+                TentSelectionScreen(
                     tentViewModel = tentViewModel,
-                    onClick = { address ->
-                        navController.navigate(
-                            Destination.DashboardWithMac.createRoute(
-                                address
-                            )
-                        )
-                    })
+                  navController = navController,
+                    filterType = filter)
             }
             //for remote mode specifically.
             composable(

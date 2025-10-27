@@ -65,12 +65,14 @@ fun HomeScreen(
             HomeListTile(
                 icon = Icons.Default.LocalFlorist,
                 title = "Vegetables",
-                onClick = { navController.navigate(Destination.Dashboard.route) }
+                // MODIFIED: Navigate to tent selection with "vegetable" filter
+                onClick = { navController.navigate(Destination.TentSelection.createRoute("vegetable")) }
             )
             HomeListTile(
                 icon = Icons.Default.Grass,
                 title = "Fodder",
-                onClick = { navController.navigate(Destination.Dashboard.route) }
+                // MODIFIED: Navigate to tent selection with "fodder" filter
+                onClick = { navController.navigate(Destination.TentSelection.createRoute("fodder")) }
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
