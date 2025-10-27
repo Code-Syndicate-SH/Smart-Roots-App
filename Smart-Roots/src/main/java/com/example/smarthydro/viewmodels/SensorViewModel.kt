@@ -45,7 +45,7 @@ class SensorViewModel : ViewModel() {
         }
     }
 
-    fun fetchRemoteSensorData(timeoutMillis: Long = 5000) {
+    fun fetchRemoteSensorData(timeoutMillis: Long = 5000, macAddress: String) {
         Log.d(TAG, "fetchRemoteSensorData() called")
         viewModelScope.launch {
             var gotData = false

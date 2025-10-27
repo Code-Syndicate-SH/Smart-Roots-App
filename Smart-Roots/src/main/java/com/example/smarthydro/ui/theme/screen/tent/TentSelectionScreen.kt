@@ -56,12 +56,10 @@ fun TentSelectionScreen(
 ) {
     val state by tentViewModel.tentManagementState.collectAsState()
 
-    // Remember the filtered list to avoid re-calculation on every recomposition
     val filteredTents = remember(state.tents, filterType) {
         state.tents.filter { it.tentType.equals(filterType, ignoreCase = true) }
     }
 
-    // Load the tents when the screen is first displayed
     LaunchedEffect(Unit) {
         tentViewModel.loadAllTents()
     }
@@ -71,7 +69,6 @@ fun TentSelectionScreen(
             TopAppBar(
                 title = {
                     Text(
-                        // Capitalize the first letter for a nice title
                         text = "Select a ${filterType.replaceFirstChar { it.titlecase(Locale.ROOT) }} Tent",
                         fontWeight = FontWeight.Bold
                     )
@@ -89,16 +86,16 @@ fun TentSelectionScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        if (state.tents.isEmpty()) {
-            // Show a loading indicator while fetching
+        // <-- FIX: Check the isLoading flag FIRST -->
+        if (state.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
+            // This will only be checked AFTER loading is false
         } else if (filteredTents.isEmpty()) {
-            // Show a message if no tents match the filter
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -110,7 +107,6 @@ fun TentSelectionScreen(
                 )
             }
         } else {
-            // Display the list of filtered tents
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -123,7 +119,6 @@ fun TentSelectionScreen(
                     TentListTile(
                         tent = tent,
                         onClick = {
-                            // Navigate to the dashboard with the specific MAC address
                             navController.navigate(
                                 Destination.DashboardWithMac.createRoute(tent.macAddress)
                             )
@@ -135,9 +130,6 @@ fun TentSelectionScreen(
     }
 }
 
-/**
- * A styled list item for displaying a single tent's information.
- */
 @Composable
 private fun TentListTile(
     tent: TentModel,
@@ -187,6 +179,7 @@ private fun TentListTile(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
+                    // You had tent.tentLocation here, but the model has tent.location
                     text = tent.tentLocation,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -19,29 +19,46 @@ class TentViewModel : ViewModel() {
 
     private val _tentUIState = MutableStateFlow(TentUIState())
     val tentUIState = _tentUIState.asStateFlow()
+
     fun loadAllTents() {
+        // When we start loading, explicitly set the loading state to true
+        _tentManagement.update { it.copy(isLoading = true) }
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val listOfTents = repository.getAllTents()
-                updateTentList(listOfTents)
+                // When finished, update the list AND set loading to false
+                _tentManagement.update {
+                    it.copy(
+                        tents = listOfTents,
+                        isLoading = false
+                    )
+                }
             } catch (exception: Exception) {
                 Log.e(TAG, "Error fetching current tents", exception)
+                // IMPORTANT: Also set loading to false on error, so the spinner doesn't get stuck
+                _tentManagement.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "Failed to load tents."
+                    )
+                }
             }
         }
     }
 
-
-
-    fun updateTentList(tents: List<TentModel>) {
-        _tentManagement.update {
-            it.copy(tents = tents)
-        }
-    }
+    // This function is no longer needed here as the logic is handled in loadAllTents
+    // fun updateTentList(tents: List<TentModel>) {
+    //     _tentManagement.update {
+    //         it.copy(tents = tents)
+    //     }
+    // }
 }
 
 data class TentManagementState(
     val tents: List<TentModel> = emptyList(),
-    val errorMessage:String = ""
+    val errorMessage: String = "",
+    // Add an isLoading flag, defaulting to true so it shows loading initially
+    val isLoading: Boolean = true
 )
 
 data class TentUIState(

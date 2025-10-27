@@ -10,7 +10,8 @@ import kotlinx.coroutines.launch
 class ComponentViewModel : ViewModel() {
     private val repository = ComponentRepository()
 
-    fun setLight() {
+
+    fun setLight(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 Log.d("ComponentViewModel", "Trying to toggle")
@@ -18,19 +19,22 @@ class ComponentViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
-            //the second base url's call is set here
+
             try {
                 var componentModel = ComponentModel(
                     light = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }
+
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
         }
     }
 
-    fun setPump() {
+    fun setPump(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 repository.togglePump()
@@ -43,14 +47,17 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     pump = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }
+
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
         }
     }
 
-    fun setExtractor() {
+    fun setExtractor(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 repository.toggleExtractor()
@@ -62,14 +69,16 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     extractorFan = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
         }
     }
 
-    fun setFan() {
+    fun setFan(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 repository.toggleFan()
@@ -82,7 +91,9 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     fan = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
@@ -90,8 +101,7 @@ class ComponentViewModel : ViewModel() {
     }
 
 
-
-    fun setPhUp() {
+    fun setPhUp(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 repository.phUp()
@@ -104,14 +114,16 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     pHUp = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress= macAddress)
+                }
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
         }
     }
 
-    fun setPhDown() {
+    fun setPhDown(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 repository.phDown()
@@ -123,7 +135,9 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     pHDown = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }
             } catch (e: Exception) {
                 Log.e("PH ERROR", e.message.toString())
             }
@@ -131,8 +145,7 @@ class ComponentViewModel : ViewModel() {
     }
 
 
-
-    fun setEcUp() {
+    fun setEcUp(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 repository.ecUp()
@@ -145,14 +158,16 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     eCUp = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }
         }
     }
 
-    fun setEcDown() {
+    fun setEcDown(macAddress: String? = null) {
         viewModelScope.launch {
             try {
                 repository.ecDown()
@@ -165,7 +180,9 @@ class ComponentViewModel : ViewModel() {
                 var componentModel = ComponentModel(
                     eCDown = 1
                 )
-                repository.toggleComponent(componentModel= componentModel,id = "1C:69:20:95:CB:1C")
+                if (macAddress != null) {
+                    repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }
             } catch (e: Exception) {
                 Log.e("ComponentViewModel", e.message.toString())
             }

@@ -147,13 +147,14 @@ fun Dashboard(
     val sensorData by viewModel.sensorData.observeAsState(SensorModel())
 
 
-    LaunchedEffect(viewModel.isLocal) {
-        if (viewModel.isLocal) {
+    LaunchedEffect(macAddress) {
+        if (macAddress==null) {
             viewModel.fetchSensorPeriodically(GET_SENSOR_DATA_DELAY_MS)
         } else {
-            viewModel.fetchRemoteSensorData()
+            viewModel.fetchRemoteSensorData(macAddress = macAddress)
         }
     }
+
 
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
@@ -222,7 +223,7 @@ fun Dashboard(
 
                             else -> {
                                 readingViewModel.setReadingType(
-                                    ReadingType(feature.title, sensorData, "")
+                                    ReadingType(feature.title, sensorData, "", macAddress =if( macAddress!=null)macAddress else null)
                                 )
                                 navController.navigate("viewData")
                             }
