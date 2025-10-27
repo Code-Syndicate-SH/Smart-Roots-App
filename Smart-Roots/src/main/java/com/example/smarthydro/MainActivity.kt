@@ -1,6 +1,7 @@
 package com.example.smarthydro
 
 
+
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -20,35 +21,32 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.smarthydro.chat.FredScreen
+import com.example.smarthydro.chat.di.fredModule
 import com.example.smarthydro.domain.HapticFeedback
 import com.example.smarthydro.ui.theme.SmartHydroTheme
 import com.example.smarthydro.ui.theme.screen.home.AgeCameraScreen
-import com.example.smarthydro.ui.theme.screen.home.HomeScreen
+import com.example.smarthydro.ui.theme.screen.home.AppSplashScreen
+import com.example.smarthydro.ui.theme.screen.home.Dashboard
+import com.example.smarthydro.ui.theme.screen.home.ImageScreen
 import com.example.smarthydro.ui.theme.screen.note.NoteScreen
 import com.example.smarthydro.ui.theme.screen.note.ViewNotes
 import com.example.smarthydro.ui.theme.screen.note.WriteToNote
-
-
+import com.example.smarthydro.ui.theme.screen.tent.MainTentScreen
+import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
 import com.example.smarthydro.viewmodels.ComponentViewModel
+import com.example.smarthydro.viewmodels.ImageViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
-import kotlinx.coroutines.withContext
-
-// ⬇️ NEW: Koin imports
-import com.example.smarthydro.chat.di.fredModule
+import com.example.smarthydro.viewmodels.TentViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
-
-import com.example.smarthydro.chat.FredScreen
-import com.example.smarthydro.ui.theme.screen.home.AppSplashScreen
-import com.example.smarthydro.ui.theme.screen.home.ImageScreen
-import com.example.smarthydro.ui.theme.screen.viewData.SensorDetailScreen
-import com.example.smarthydro.viewmodels.ImageViewModel
 
 
 sealed class Destination(val route: String) {
@@ -58,7 +56,13 @@ sealed class Destination(val route: String) {
     object AgeCamera : Destination("Age")
     object SplashScreen : Destination("Splash")
     object Fred : Destination("Fred")
-    object Image: Destination("Image")
+    object Image : Destination("Image")
+    object TentManagement : Destination("TentManagement")
+    object Dashboard : Destination("Dashboard")
+    object DashboardWithMac : Destination("Dashboard/{macAddress}") {
+        fun createRoute(macAddress: String) = "Dashboard/$macAddress"
+    }
+
 
 }
 
@@ -66,7 +70,8 @@ class MainActivity : ComponentActivity() {
     private val sensorViewModel: SensorViewModel by viewModels()
     private val component: ComponentViewModel by viewModels()
     private val reading: ReadingViewModel by viewModels()
-   private val imageViewModel: ImageViewModel by viewModels()
+    private val imageViewModel: ImageViewModel by viewModels()
+    private val tentViewModel: TentViewModel by viewModels()
     override fun getApplicationContext(): Context? {
         return super.getApplicationContext()
     }
@@ -143,7 +148,8 @@ class MainActivity : ComponentActivity() {
                     component,
                     reading,
                     context = applicationContext!!,
-                     imageViewModel = imageViewModel
+                    imageViewModel = imageViewModel,
+                    tentViewModel = tentViewModel
                 )
             }
         }
@@ -271,16 +277,18 @@ fun NavAppHost(
     readingViewModel: ReadingViewModel,
     imageViewModel: ImageViewModel,
     context: Context,
+    tentViewModel: TentViewModel,
 ) {
 
     NavHost(navController = navController, startDestination = Destination.SplashScreen.route) {
 
 
-        composable(Destination.Home.route) {
-            HomeScreen(
+        composable(Destination.Dashboard.route) {
+            Dashboard(
                 viewModel = sensorViewModel,
                 navController,
-                readingViewModel = readingViewModel
+                readingViewModel = readingViewModel,
+                macAddress = null
             )
         }
         composable(Destination.ViewData.route) {
@@ -306,12 +314,40 @@ fun NavAppHost(
             FredScreen()
 
         }
-        composable(Destination.Image.route){
-            ImageScreen(imageViewModel =imageViewModel )
+        composable(Destination.Image.route) {
+            ImageScreen(imageViewModel = imageViewModel)
         }
-       composable(Destination.SplashScreen.route) {
-           AppSplashScreen(navController)
-       }
+        composable(Destination.SplashScreen.route) {
+            AppSplashScreen(navController)
+        }
+        composable(Destination.TentManagement.route, arguments = listOf(navArgument("macAddress") {
+            type =
+                NavType.StringType
+        })) { backstackEntry ->
+            val macAddress = backstackEntry.arguments?.getString("macAddress")
+            MainTentScreen(
+                tentViewModel = tentViewModel,
+                onClick = { address ->
+                    navController.navigate(
+                        Destination.DashboardWithMac.createRoute(
+                            address
+                        )
+                    )
+                })
+        }
+        //for remote mode specifically.
+        composable(
+            route = Destination.DashboardWithMac.route,
+            arguments = listOf(navArgument("macAddress") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val macAddress = backStackEntry.arguments?.getString("macAddress")
+            Dashboard(
+                viewModel = sensorViewModel,
+                navController = navController,
+                readingViewModel = readingViewModel,
+                macAddress = macAddress // remote mode
+            )
+        }
         composable(route = Destination.AgeCamera.route) {
             AgeCameraScreen(context = context, navigateToHomeScreen = {
                 val hapticFeedback = HapticFeedback()

@@ -8,7 +8,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.provider.Settings
@@ -143,10 +142,11 @@ fun pushNotification(context: Context, title: String, message: String) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(
+fun Dashboard(
     viewModel: SensorViewModel,
     navController: NavHostController,
-    readingViewModel: ReadingViewModel
+    readingViewModel: ReadingViewModel,
+    macAddress: String?
 ) {
     val sensorData by viewModel.sensorData.observeAsState(SensorModel())
     var language by remember { mutableStateOf("EN") }
