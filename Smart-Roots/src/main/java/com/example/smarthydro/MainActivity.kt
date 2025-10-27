@@ -1,7 +1,6 @@
 package com.example.smarthydro
 
 
-
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -15,7 +14,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -306,32 +304,37 @@ fun NavAppHost(
 
         else -> false
     }
-    val showTopBar = when(currentDestination?.route){
-        Destination.Home.route   ->false
+    val showTopBar = when (currentDestination?.route) {
+        Destination.Home.route,
+        Destination.SplashScreen.route,
+        Destination.AgeCamera.route,
+            -> false
+
         else -> true
     }
     Scaffold(
         containerColor = DeepBlue,
         topBar = {
-            if(showTopBar){
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Home", // avoid missing R.string.dashboard
-                        fontWeight = FontWeight.Medium
+            if (showTopBar) {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "Home", // avoid missing R.string.dashboard
+                            fontWeight = FontWeight.Medium
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.navigateUp() }) {
+                            Icon(Icons.Rounded.ArrowBack, contentDescription = null)
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = SO_Surf_D,
+                        titleContentColor = SO_OnSurf_D,
+                        navigationIconContentColor = SO_OnSurf_D
                     )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SO_Surf_D,
-                    titleContentColor = SO_OnSurf_D,
-                    navigationIconContentColor = SO_OnSurf_D
                 )
-            )}
+            }
         },
         bottomBar = {
 
@@ -340,7 +343,7 @@ fun NavAppHost(
             }
 
         }
-    ) {padding->
+    ) { padding ->
 
         NavHost(navController = navController, startDestination = Destination.SplashScreen.route) {
 
@@ -387,10 +390,13 @@ fun NavAppHost(
             {
                 HomeScreen(navController)
             }
-            composable(Destination.TentManagement.route, arguments = listOf(navArgument("macAddress") {
-                type =
-                    NavType.StringType
-            })) { backstackEntry ->
+            composable(
+                Destination.TentManagement.route,
+                arguments = listOf(navArgument("macAddress") {
+                    type =
+                        NavType.StringType
+                })
+            ) { backstackEntry ->
                 val macAddress = backstackEntry.arguments?.getString("macAddress")
                 MainTentScreen(
                     tentViewModel = tentViewModel,
@@ -413,11 +419,11 @@ fun NavAppHost(
                     navController = navController,
                     readingViewModel = readingViewModel,
                     macAddress = macAddress, // remote mode,
-                    padding =padding
+                    padding = padding
                 )
             }
             composable(route = Destination.AgeCamera.route) {
-                AgeCameraScreen(context = context, navigateToHomeScreen = {
+                AgeCameraScreen(navigateToHomeScreen = {
                     val hapticFeedback = HapticFeedback()
                     hapticFeedback(context)
                     navController.navigate(Destination.Home.route) {

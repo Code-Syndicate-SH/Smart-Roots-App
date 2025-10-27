@@ -1,6 +1,7 @@
 package com.example.smarthydro.ui.theme.screen.home
 
 
+import android.content.Context
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloatAsState
@@ -28,6 +29,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -39,6 +41,12 @@ import kotlinx.coroutines.delay
 @Composable
 fun AppSplashScreen(navController: NavController) {
     var visible by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+
+    var age by remember {
+        mutableStateOf(sharedPreferences.getString("age_category", "0") ?: "1")
+    }
 
     // Pulse animation for the logo
     val scale by animateFloatAsState(

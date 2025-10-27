@@ -36,7 +36,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -45,13 +44,9 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -75,7 +70,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.smarthydro.Destination
 import com.example.smarthydro.R
 import com.example.smarthydro.models.SensorModel
@@ -86,7 +80,6 @@ import com.example.smarthydro.ui.theme.RedBad
 import com.example.smarthydro.ui.theme.SO_OnSurf_D
 import com.example.smarthydro.ui.theme.SO_SurfVar_D
 import com.example.smarthydro.ui.theme.SO_Surf_D
-import com.example.smarthydro.ui.theme.screen.AppBottomBar
 import com.example.smarthydro.ui.theme.screen.ReadingType
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
@@ -149,7 +142,7 @@ fun Dashboard(
     navController: NavHostController,
     readingViewModel: ReadingViewModel,
     macAddress: String?,
-    padding: PaddingValues
+    padding: PaddingValues,
 ) {
     val sensorData by viewModel.sensorData.observeAsState(SensorModel())
 
@@ -176,70 +169,70 @@ fun Dashboard(
     val features = getFeatures(sensorData, language)
 
 
-        Column(
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DeepBlue)
+            .padding(padding)
+    ) {
+        WifiInfoSection(
+            language = language,
+            onToggleLanguage = { selected -> language = selected }
+        )
+
+        Image(
+            painter = painterResource(id = R.drawable.greeting),
+            contentDescription = "Greeting",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+        )
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(DeepBlue)
-                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            WifiInfoSection(
-                language = language,
-                onToggleLanguage = { selected -> language = selected }
-            )
+            items(features, key = { it.title }) { feature ->
+                MetricListTile(
+                    iconRes = feature.iconId,
+                    title = feature.title,
+                    value = when {
+                        feature.isCamera -> ""
+                        feature.sensorReading.isEmpty() -> "––"
+                        else -> feature.sensorReading
+                    },
+                    valueTint = readingTintFor(context, feature.title, feature.sensorReading),
+                    onClick = {
+                        when {
+                            feature.isCamera -> {
 
-            Image(
-                painter = painterResource(id = R.drawable.greeting),
-                contentDescription = "Greeting",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-            )
+                                navController.navigate(Destination.Image.route)
+                            }
 
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                items(features, key = { it.title }) { feature ->
-                    MetricListTile(
-                        iconRes = feature.iconId,
-                        title = feature.title,
-                        value = when {
-                            feature.isCamera -> ""
-                            feature.sensorReading.isEmpty() -> "––"
-                            else -> feature.sensorReading
-                        },
-                        valueTint = readingTintFor(context, feature.title, feature.sensorReading),
-                        onClick = {
-                            when {
-                                feature.isCamera -> {
+                            feature.isChatbot -> {
+                                navController.navigate(Destination.Fred.route)
+                            }
 
-                                    navController.navigate(Destination.Image.route)
-                                }
+                            feature.isNote -> {
+                                navController.navigate(Destination.NoteScreen.route)
+                            }
 
-                                feature.isChatbot -> {
-                                    navController.navigate(Destination.Fred.route)
-                                }
-
-                                feature.isNote -> {
-                                    navController.navigate(Destination.NoteScreen.route)
-                                }
-
-                                else -> {
-                                    readingViewModel.setReadingType(
-                                        ReadingType(feature.title, sensorData, "")
-                                    )
-                                    navController.navigate("viewData")
-                                }
+                            else -> {
+                                readingViewModel.setReadingType(
+                                    ReadingType(feature.title, sensorData, "")
+                                )
+                                navController.navigate("viewData")
                             }
                         }
-                    )
-                }
-                item { Spacer(Modifier.height(12.dp)) }
+                    }
+                )
             }
+            item { Spacer(Modifier.height(12.dp)) }
         }
+    }
 
 }
 
