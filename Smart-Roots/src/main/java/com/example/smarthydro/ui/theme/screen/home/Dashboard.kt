@@ -56,10 +56,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -75,6 +75,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.smarthydro.Destination
 import com.example.smarthydro.R
 import com.example.smarthydro.models.SensorModel
@@ -83,8 +84,9 @@ import com.example.smarthydro.ui.theme.DeepBlue
 import com.example.smarthydro.ui.theme.GreenGood
 import com.example.smarthydro.ui.theme.RedBad
 import com.example.smarthydro.ui.theme.SO_OnSurf_D
-import com.example.smarthydro.ui.theme.SO_Surf_D
 import com.example.smarthydro.ui.theme.SO_SurfVar_D
+import com.example.smarthydro.ui.theme.SO_Surf_D
+import com.example.smarthydro.ui.theme.screen.AppBottomBar
 import com.example.smarthydro.ui.theme.screen.ReadingType
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
@@ -146,57 +148,39 @@ fun Dashboard(
     viewModel: SensorViewModel,
     navController: NavHostController,
     readingViewModel: ReadingViewModel,
-    macAddress: String?
+    macAddress: String?,
+    padding: PaddingValues
 ) {
     val sensorData by viewModel.sensorData.observeAsState(SensorModel())
-    var language by remember { mutableStateOf("EN") }
+
 
     LaunchedEffect(viewModel.isLocal) {
-        if(viewModel.isLocal){
-        viewModel.fetchSensorPeriodically(GET_SENSOR_DATA_DELAY_MS)
-    }else{
-        viewModel.fetchRemoteSensorData()
+        if (viewModel.isLocal) {
+            viewModel.fetchSensorPeriodically(GET_SENSOR_DATA_DELAY_MS)
+        } else {
+            viewModel.fetchRemoteSensorData()
         }
     }
 
     val context = LocalContext.current
+    val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+
+    var language by remember {
+        mutableStateOf(sharedPreferences.getString("language_code", "EN") ?: "EN")
+    }
+
     LaunchedEffect(language) {
-        context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
-            .edit()
-            .putString("language_code", language)
-            .apply()
+        sharedPreferences.edit().putString("language_code", language).apply()
     }
 
     val features = getFeatures(sensorData, language)
 
-    Scaffold(
-        containerColor = DeepBlue,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Dashboard", // avoid missing R.string.dashboard
-                        fontWeight = FontWeight.Medium
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = null)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = SO_Surf_D,
-                    titleContentColor = SO_OnSurf_D,
-                    navigationIconContentColor = SO_OnSurf_D
-                )
-            )
-        }
-    ) { pads ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(DeepBlue)
-                .padding(pads)
+                .padding(padding)
         ) {
             WifiInfoSection(
                 language = language,
@@ -234,9 +218,11 @@ fun Dashboard(
 
                                     navController.navigate(Destination.Image.route)
                                 }
-                                feature.isChatbot->{
+
+                                feature.isChatbot -> {
                                     navController.navigate(Destination.Fred.route)
                                 }
+
                                 feature.isNote -> {
                                     navController.navigate(Destination.NoteScreen.route)
                                 }
@@ -254,7 +240,7 @@ fun Dashboard(
                 item { Spacer(Modifier.height(12.dp)) }
             }
         }
-    }
+
 }
 
 // ---------------------- Wifi & Language (from Code 2) ----------------------
@@ -416,92 +402,564 @@ private fun getFeatures(sensorData: SensorModel, language: String): List<Feature
     val languageCode = sharedPreferences.getString("language_code", language)
     val features = when (languageCode) {
         "ZU" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_ZU), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_ZU), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_ZU), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_ZU), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_ZU), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_ZU), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_ZU),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_ZU),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_ZU),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_ZU),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_ZU),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_ZU),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "AF" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_AF), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_AF), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_AF), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_AF), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_AF), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_AF), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_AF),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_AF),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_AF),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_AF),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_AF),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_AF),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "XH" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_XH), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_XH), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_XH), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_XH), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_XH), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_XH), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_XH),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_XH),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_XH),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_XH),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_XH),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_XH),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "ST" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_ST), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_ST), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_ST), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_ST), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_ST), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_ST), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_ST),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_ST),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_ST),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_ST),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_ST),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_ST),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "TN" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_TN), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_TN), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_TN), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_TN), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_TN), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_TN), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_TN),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_TN),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_TN),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_TN),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_TN),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_TN),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "SS" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_SS), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_SS), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_SS), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_SS), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_SS), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_SS), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_SS),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_SS),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_SS),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_SS),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_SS),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_SS),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "VE" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_VE), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_VE), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_VE), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_VE), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_VE), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_VE), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_VE),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_VE),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_VE),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_VE),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_VE),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_VE),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "TS" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_TS), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_TS), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_TS), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_TS), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_TS), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_TS), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_TS),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_TS),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_TS),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_TS),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_TS),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_TS),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "NS" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_NS), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_NS), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_NS), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_NS), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_NS), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_NS), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_NS),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_NS),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_NS),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_NS),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_NS),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_NS),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         "ND" -> listOf(
-            Feature(context.getString(R.string.Water_Flow_ND), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH_ND), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature_ND), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity_ND), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading_ND), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light_ND), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow_ND),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH_ND),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature_ND),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity_ND),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading_ND),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light_ND),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
+
         else -> listOf(
-            Feature(context.getString(R.string.Water_Flow), R.drawable.ic_waterlv, com.example.smarthydro.ui.theme.BlueViolet1, com.example.smarthydro.ui.theme.BlueViolet2, com.example.smarthydro.ui.theme.BlueViolet3, sensorData.flowRate),
-            Feature(context.getString(R.string.Water_pH), R.drawable.ic_cleanwater, com.example.smarthydro.ui.theme.Blue1, com.example.smarthydro.ui.theme.Blue2, com.example.smarthydro.ui.theme.Blue3, sensorData.pH),
-            Feature(context.getString(R.string.Temperature), R.drawable.mode_fan_24px, com.example.smarthydro.ui.theme.Red1, com.example.smarthydro.ui.theme.Red2, com.example.smarthydro.ui.theme.Red3, sensorData.temperature),
-            Feature(context.getString(R.string.Humidity), R.drawable.heat_pump_24px, com.example.smarthydro.ui.theme.Beige1, com.example.smarthydro.ui.theme.Beige2, com.example.smarthydro.ui.theme.Beige3, sensorData.humidity),
-            Feature(context.getString(R.string.EC_Reading), R.drawable.ic_plant, com.example.smarthydro.ui.theme.LightGreen1, com.example.smarthydro.ui.theme.LightGreen2, com.example.smarthydro.ui.theme.LightGreen3, sensorData.eC),
-            Feature(context.getString(R.string.Light), R.drawable.ic_light, com.example.smarthydro.ui.theme.OrangeYellow1, com.example.smarthydro.ui.theme.OrangeYellow2, com.example.smarthydro.ui.theme.OrangeYellow3, sensorData.light)
+            Feature(
+                context.getString(R.string.Water_Flow),
+                R.drawable.ic_waterlv,
+                com.example.smarthydro.ui.theme.BlueViolet1,
+                com.example.smarthydro.ui.theme.BlueViolet2,
+                com.example.smarthydro.ui.theme.BlueViolet3,
+                sensorData.flowRate
+            ),
+            Feature(
+                context.getString(R.string.Water_pH),
+                R.drawable.ic_cleanwater,
+                com.example.smarthydro.ui.theme.Blue1,
+                com.example.smarthydro.ui.theme.Blue2,
+                com.example.smarthydro.ui.theme.Blue3,
+                sensorData.pH
+            ),
+            Feature(
+                context.getString(R.string.Temperature),
+                R.drawable.mode_fan_24px,
+                com.example.smarthydro.ui.theme.Red1,
+                com.example.smarthydro.ui.theme.Red2,
+                com.example.smarthydro.ui.theme.Red3,
+                sensorData.temperature
+            ),
+            Feature(
+                context.getString(R.string.Humidity),
+                R.drawable.heat_pump_24px,
+                com.example.smarthydro.ui.theme.Beige1,
+                com.example.smarthydro.ui.theme.Beige2,
+                com.example.smarthydro.ui.theme.Beige3,
+                sensorData.humidity
+            ),
+            Feature(
+                context.getString(R.string.EC_Reading),
+                R.drawable.ic_plant,
+                com.example.smarthydro.ui.theme.LightGreen1,
+                com.example.smarthydro.ui.theme.LightGreen2,
+                com.example.smarthydro.ui.theme.LightGreen3,
+                sensorData.eC
+            ),
+            Feature(
+                context.getString(R.string.Light),
+                R.drawable.ic_light,
+                com.example.smarthydro.ui.theme.OrangeYellow1,
+                com.example.smarthydro.ui.theme.OrangeYellow2,
+                com.example.smarthydro.ui.theme.OrangeYellow3,
+                sensorData.light
+            )
         )
     }
     return features + listOf(
@@ -533,7 +991,7 @@ private fun getFeatures(sensorData: SensorModel, language: String): List<Feature
             isCamera = true
         ),
 
-    )
+        )
 }
 
 // ---------------------- Code-1-like tile ----------------------
@@ -544,7 +1002,7 @@ private fun MetricListTile(
     title: String,
     value: String,
     valueTint: Color,
-    onClick: () -> Unit
+    onClick: () -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
@@ -623,7 +1081,7 @@ private data class Range(val min: Float, val max: Float)
 private fun readingTintFor(
     context: Context,
     title: String,
-    readingValue: String
+    readingValue: String,
 ): Color {
     val reading = readingValue.toFloatOrNull() ?: return AutoBlue
     val range = acceptableRanges(context)[title]
@@ -633,10 +1091,12 @@ private fun readingTintFor(
                 pushNotification(context, title, "is very low ‼️")
                 RedBad
             }
+
             reading > range.max -> {
                 pushNotification(context, title, "is very high ‼️")
                 RedBad
             }
+
             else -> GreenGood
         }
     } else {

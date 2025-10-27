@@ -15,7 +15,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.font.FontWeight
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -24,12 +35,17 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.smarthydro.chat.FredScreen
 import com.example.smarthydro.chat.di.fredModule
 import com.example.smarthydro.domain.HapticFeedback
+import com.example.smarthydro.ui.theme.DeepBlue
+import com.example.smarthydro.ui.theme.SO_OnSurf_D
+import com.example.smarthydro.ui.theme.SO_Surf_D
 import com.example.smarthydro.ui.theme.SmartHydroTheme
+import com.example.smarthydro.ui.theme.screen.AppBottomBar
 import com.example.smarthydro.ui.theme.screen.home.AgeCameraScreen
 import com.example.smarthydro.ui.theme.screen.home.AppSplashScreen
 import com.example.smarthydro.ui.theme.screen.home.Dashboard
@@ -44,6 +60,7 @@ import com.example.smarthydro.viewmodels.ImageViewModel
 import com.example.smarthydro.viewmodels.ReadingViewModel
 import com.example.smarthydro.viewmodels.SensorViewModel
 import com.example.smarthydro.viewmodels.TentViewModel
+import com.keagan.smartroots.screens.HomeScreen
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
@@ -268,7 +285,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+
 @Composable
 fun NavAppHost(
     navController: NavHostController,
@@ -279,85 +297,137 @@ fun NavAppHost(
     context: Context,
     tentViewModel: TentViewModel,
 ) {
+    val navBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry.value?.destination
+    val showBottomBar = when (currentDestination?.route) {
+        Destination.Home.route,
+        Destination.ViewData.route,
+            -> true
 
-    NavHost(navController = navController, startDestination = Destination.SplashScreen.route) {
-
-
-        composable(Destination.Dashboard.route) {
-            Dashboard(
-                viewModel = sensorViewModel,
-                navController,
-                readingViewModel = readingViewModel,
-                macAddress = null
-            )
-        }
-        composable(Destination.ViewData.route) {
-            SensorDetailScreen(
-                navController,
-                componentViewModel,
-                readingViewModel = readingViewModel,
-                sensorViewModel = sensorViewModel,
-
-                )
-        }
-        composable(Destination.NoteScreen.route) {
-            NoteScreen(
-                navController = navController,
-                context
-            )
-        }
-        composable("WriteToNote") { WriteToNote() }
-        composable("ViewNotes") { ViewNotes() }
-
-
-        composable(Destination.Fred.route) {
-            FredScreen()
-
-        }
-        composable(Destination.Image.route) {
-            ImageScreen(imageViewModel = imageViewModel)
-        }
-        composable(Destination.SplashScreen.route) {
-            AppSplashScreen(navController)
-        }
-        composable(Destination.TentManagement.route, arguments = listOf(navArgument("macAddress") {
-            type =
-                NavType.StringType
-        })) { backstackEntry ->
-            val macAddress = backstackEntry.arguments?.getString("macAddress")
-            MainTentScreen(
-                tentViewModel = tentViewModel,
-                onClick = { address ->
-                    navController.navigate(
-                        Destination.DashboardWithMac.createRoute(
-                            address
-                        )
+        else -> false
+    }
+    val showTopBar = when(currentDestination?.route){
+        Destination.Home.route   ->false
+        else -> true
+    }
+    Scaffold(
+        containerColor = DeepBlue,
+        topBar = {
+            if(showTopBar){
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Home", // avoid missing R.string.dashboard
+                        fontWeight = FontWeight.Medium
                     )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = null)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = SO_Surf_D,
+                    titleContentColor = SO_OnSurf_D,
+                    navigationIconContentColor = SO_OnSurf_D
+                )
+            )}
+        },
+        bottomBar = {
+
+            if (showBottomBar) {
+                AppBottomBar(navController = navController)
+            }
+
+        }
+    ) {padding->
+
+        NavHost(navController = navController, startDestination = Destination.SplashScreen.route) {
+
+
+            composable(Destination.Dashboard.route) {
+                Dashboard(
+                    viewModel = sensorViewModel,
+                    navController,
+                    readingViewModel = readingViewModel,
+                    macAddress = null,
+                    padding = padding
+                )
+            }
+            composable(Destination.ViewData.route) {
+                SensorDetailScreen(
+                    navController,
+                    componentViewModel,
+                    readingViewModel = readingViewModel,
+                    sensorViewModel = sensorViewModel,
+
+                    )
+            }
+            composable(Destination.NoteScreen.route) {
+                NoteScreen(
+                    navController = navController,
+                    context
+                )
+            }
+            composable("WriteToNote") { WriteToNote() }
+            composable("ViewNotes") { ViewNotes() }
+
+
+            composable(Destination.Fred.route) {
+                FredScreen()
+
+            }
+            composable(Destination.Image.route) {
+                ImageScreen(imageViewModel = imageViewModel)
+            }
+            composable(Destination.SplashScreen.route) {
+                AppSplashScreen(navController)
+            }
+            composable(Destination.Home.route)
+            {
+                HomeScreen(navController)
+            }
+            composable(Destination.TentManagement.route, arguments = listOf(navArgument("macAddress") {
+                type =
+                    NavType.StringType
+            })) { backstackEntry ->
+                val macAddress = backstackEntry.arguments?.getString("macAddress")
+                MainTentScreen(
+                    tentViewModel = tentViewModel,
+                    onClick = { address ->
+                        navController.navigate(
+                            Destination.DashboardWithMac.createRoute(
+                                address
+                            )
+                        )
+                    })
+            }
+            //for remote mode specifically.
+            composable(
+                route = Destination.DashboardWithMac.route,
+                arguments = listOf(navArgument("macAddress") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val macAddress = backStackEntry.arguments?.getString("macAddress")
+                Dashboard(
+                    viewModel = sensorViewModel,
+                    navController = navController,
+                    readingViewModel = readingViewModel,
+                    macAddress = macAddress, // remote mode,
+                    padding =padding
+                )
+            }
+            composable(route = Destination.AgeCamera.route) {
+                AgeCameraScreen(context = context, navigateToHomeScreen = {
+                    val hapticFeedback = HapticFeedback()
+                    hapticFeedback(context)
+                    navController.navigate(Destination.Home.route) {
+                        popUpTo(Destination.AgeCamera.route)
+                    }
                 })
-        }
-        //for remote mode specifically.
-        composable(
-            route = Destination.DashboardWithMac.route,
-            arguments = listOf(navArgument("macAddress") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val macAddress = backStackEntry.arguments?.getString("macAddress")
-            Dashboard(
-                viewModel = sensorViewModel,
-                navController = navController,
-                readingViewModel = readingViewModel,
-                macAddress = macAddress // remote mode
-            )
-        }
-        composable(route = Destination.AgeCamera.route) {
-            AgeCameraScreen(context = context, navigateToHomeScreen = {
-                val hapticFeedback = HapticFeedback()
-                hapticFeedback(context)
-                navController.navigate(Destination.Home.route) {
-                    popUpTo(Destination.AgeCamera.route)
-                }
-            })
+            }
         }
     }
+
 }
 
 

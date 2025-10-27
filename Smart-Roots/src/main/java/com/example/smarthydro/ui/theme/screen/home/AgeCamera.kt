@@ -76,15 +76,15 @@ fun AgeCameraScreen(context: Context, navigateToHomeScreen: () -> Unit) {
         }
     }
 
-    LaunchedEffect(classifications.count()>0) {
-        var hasClassified  = false
+    LaunchedEffect(classifications.count() > 0) {
+        var hasClassified = false
         for (classification in classifications) {
-            if (classifications.size > 0 && classification.age > 0 && classification.score > 0.20f) {
-                hasClassified =true
-                delay(2000)
+            if (classification.age > 0) {
+                hasClassified = true
 
             }
         }
+
         var hasInternet = false
         val connectionStatus = RemoteClientPing.httpClient
         CoroutineScope(Dispatchers.IO).launch {
@@ -93,94 +93,96 @@ fun AgeCameraScreen(context: Context, navigateToHomeScreen: () -> Unit) {
             delay(1500)
             if (response.status.value in 200..299) {
                 hasInternet = true
-            }else{
-                navigateToHomeScreen()
             }
         }
-    }
-        var displayText = when {
-            classifications.isEmpty() -> "No faces detected, please face the camera"
-            classifications[0].age >= 0 -> "Please hold still, almost there"
-            else -> "Unknown objects detected, face the camera and hold still"
+        if (hasClassified) {
+            navigateToHomeScreen()
         }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                "Smart Roots",
-                fontStyle = FontStyle.Companion.Italic,
-                fontSize = 40.sp,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                modifier = Modifier,
-                color = Color.White
-            )
 
-            AgeCameraPreview(
-                controller = cameraController,
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .fillMaxHeight(0.6f)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .padding(20.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                        Color.White
-                    ), contentAlignment = Alignment.BottomCenter
-            ) {
-                if(classifications.size>0){
-                    Text(
-                        text = classifications[0].age_class, modifier = Modifier
-                            .width(200.dp)
-                            .padding(8.dp),
-                        textAlign = TextAlign.Center,
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                }else{
-                    Text(
-                        text = displayText, modifier = Modifier
-                            .width(300.dp)
-                            .padding(8.dp),
-                        textAlign = TextAlign.Center,
-                        fontSize = 20.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-
-                }
-
-
-            }
-
-
-        }
     }
-
-    @Composable
-    fun AgeCameraPreview(modifier: Modifier, controller: LifecycleCameraController) {
-        val lifecycleOwner = LocalLifecycleOwner.current
-        var cameraSelector: CameraSelector = CameraSelector.Builder()
-            .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-            .build()
-        AndroidView(
-            factory = {
-                PreviewView(it).apply {
-                    this.controller = controller
-                    this.controller?.cameraSelector = cameraSelector
-                    controller.bindToLifecycle(lifecycleOwner)
-
-                }
-            },
-            modifier = modifier.clip(RoundedCornerShape(10.dp))
+    var displayText = when {
+        classifications.isEmpty() -> "No faces detected, please face the camera"
+        classifications[0].age >= 0 -> "Please hold still, almost there"
+        else -> "Unknown objects detected, face the camera and hold still"
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Smart Roots",
+            fontStyle = FontStyle.Companion.Italic,
+            fontSize = 40.sp,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            modifier = Modifier,
+            color = Color.White
         )
 
+        AgeCameraPreview(
+            controller = cameraController,
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .fillMaxHeight(0.6f)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .padding(20.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(
+                    Color.White
+                ), contentAlignment = Alignment.BottomCenter
+        ) {
+            if (classifications.size > 0) {
+                Text(
+                    text = classifications[0].age_class, modifier = Modifier
+                        .width(200.dp)
+                        .padding(8.dp),
+                    textAlign = TextAlign.Center,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+            } else {
+                Text(
+                    text = displayText, modifier = Modifier
+                        .width(300.dp)
+                        .padding(8.dp),
+                    textAlign = TextAlign.Center,
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+            }
+
+
+        }
+
 
     }
+}
+
+@Composable
+fun AgeCameraPreview(modifier: Modifier, controller: LifecycleCameraController) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var cameraSelector: CameraSelector = CameraSelector.Builder()
+        .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+        .build()
+    AndroidView(
+        factory = {
+            PreviewView(it).apply {
+                this.controller = controller
+                this.controller?.cameraSelector = cameraSelector
+                controller.bindToLifecycle(lifecycleOwner)
+
+            }
+        },
+        modifier = modifier.clip(RoundedCornerShape(10.dp))
+    )
+
+
+}
 
