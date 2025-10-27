@@ -15,6 +15,9 @@ jobs:
     name: Build & Unit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      # Provide the secret once for all steps in this job
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
     steps:
       - name: Checkout
@@ -55,13 +58,12 @@ jobs:
         working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Assemble Debug
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon -PGEMINI_API_KEY="$GEMINI_API_KEY"
         working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon -PGEMINI_API_KEY="$GEMINI_API_KEY"
         working-directory: ${{ env.WRAPPER_DIR }}
-
 
       # Artifacts (module-agnostic)
       - name: Upload Debug APK(s)
@@ -88,6 +90,10 @@ jobs:
       actions: read
       contents: read
       security-events: write
+
+    env:
+      # Provide the same secret here too
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
     steps:
       - name: Checkout
@@ -128,11 +134,11 @@ jobs:
           languages: java-kotlin
 
       - name: Assemble Debug for CodeQL DB
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon -PGEMINI_API_KEY="$GEMINI_API_KEY"
         working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Run Unit Tests (CodeQL context)
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon -PGEMINI_API_KEY="$GEMINI_API_KEY"
         working-directory: ${{ env.WRAPPER_DIR }}
 
       - name: Perform CodeQL Analysis
