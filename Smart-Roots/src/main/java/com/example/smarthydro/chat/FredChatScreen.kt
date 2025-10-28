@@ -35,6 +35,7 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FredChatScreen(
     messages: List<UiMsg>,
@@ -88,7 +89,26 @@ fun FredChatScreen(
         coroutineScope.launch { listState.animateScrollToItem(messages.size) }
     }
 
-    Scaffold(containerColor = Color(0xFF0D0D0D)) { padding ->
+    Scaffold(
+        topBar = {
+            // 🌿 Visible Green Header Bar
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Fred Chatbot",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF2E7D32), // bright green SmartHydro header
+                    titleContentColor = Color.White
+                )
+            )
+        },
+        containerColor = Color(0xFF0D0D0D)
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
