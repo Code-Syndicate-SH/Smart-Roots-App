@@ -16,20 +16,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -45,18 +40,18 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smarthydro.Destination
-import com.example.smarthydro.R // Make sure this import is correct
+import com.example.smarthydro.R
 import com.example.smarthydro.models.TentModel
 import com.example.smarthydro.viewmodels.TentViewModel
 import leagueSpartan
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TentSelectionScreen(
     navController: NavController,
     filterType: String,
-    tentViewModel: TentViewModel = viewModel()
+    tentViewModel: TentViewModel = viewModel(),
+    paddingValues: PaddingValues,
 ) {
     val state by tentViewModel.tentManagementState.collectAsState()
 
@@ -68,52 +63,35 @@ fun TentSelectionScreen(
         tentViewModel.loadAllTents()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Select a ${filterType.replaceFirstChar { it.titlecase(Locale.ROOT) }} Tent",
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
+    if (state.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+    } else if (filteredTents.isEmpty()) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "No ${filterType.lowercase()} tents found.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
-        if (state.isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-            }
-        } else if (filteredTents.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No ${filterType.lowercase()} tents found.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
+        }
+    } else {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 16.dp),
+                    .fillMaxSize(),
+
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
             ) {
@@ -121,6 +99,7 @@ fun TentSelectionScreen(
                     TentListTile(
                         tent = tent,
                         onClick = {
+                            tentViewModel.currentTent(tent)
                             navController.navigate(
                                 Destination.DashboardWithMac.createRoute(tent.macAddress)
                             )
@@ -128,17 +107,12 @@ fun TentSelectionScreen(
                     )
                 }
             }
+
         }
     }
 }
 
-/**
- * An updated list item that displays tent details with corresponding icons.
- * NOTE: This composable assumes your `TentModel` has `tentName`, `organizationName`,
- * and `tentLocation` properties.
- * It also assumes you have drawable resources named `name.png` and `location.png`
- * in your `res/drawable` folder.
- */
+
 @Composable
 private fun TentListTile(
     tent: TentModel,

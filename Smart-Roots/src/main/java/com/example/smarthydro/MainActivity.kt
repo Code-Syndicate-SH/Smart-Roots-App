@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,7 +25,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -39,8 +45,10 @@ import androidx.navigation.navArgument
 import com.example.smarthydro.chat.FredScreen
 import com.example.smarthydro.chat.di.fredModule
 import com.example.smarthydro.domain.HapticFeedback
+import com.example.smarthydro.ui.theme.AutoBlue
 import com.example.smarthydro.ui.theme.DeepBlue
 import com.example.smarthydro.ui.theme.SO_OnSurf_D
+import com.example.smarthydro.ui.theme.SO_Primary_D
 import com.example.smarthydro.ui.theme.SO_Surf_D
 import com.example.smarthydro.ui.theme.SmartHydroTheme
 import com.example.smarthydro.ui.theme.screen.AppBottomBar
@@ -72,7 +80,10 @@ sealed class Destination(val route: String) {
     object AgeCamera : Destination("Age")
     object SplashScreen : Destination("Splash")
     object Fred : Destination("Fred")
-    object Image : Destination("Image")
+    object Image : Destination("Image/{macAddress}") {
+        fun createRoute(macAddress: String) = "Image/$macAddress"
+    }
+
     object TentManagement : Destination("TentManagement")
     object Dashboard : Destination("Dashboard")
     object DashboardWithMac : Destination("Dashboard/{macAddress}") {
@@ -326,8 +337,25 @@ fun NavAppHost(
                 TopAppBar(
                     title = {
                         Text(
-                            text  =  "Smart Roots",
-                            fontWeight = FontWeight.Medium
+                            buildAnnotatedString {
+                                withStyle(style = SpanStyle(color = SO_Primary_D)) {
+                                    append("S")
+                                }
+                                append("mart ")
+
+                                withStyle(
+                                    style = SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        color = AutoBlue
+                                    )
+                                ) {
+                                    append("R")
+                                }
+                                append("oots")
+                            },
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.fillMaxWidth(0.9f),
+                            textAlign = TextAlign.Center
                         )
                     },
                     navigationIcon = {
@@ -382,7 +410,8 @@ fun NavAppHost(
                 TentSelectionScreen(
                     navController = navController,
                     filterType = filter,
-                    tentViewModel = tentViewModel // Pass the ViewModel instance
+                    tentViewModel = tentViewModel, // Pass the ViewModel instance,
+                    paddingValues = padding
                 )
             }
             composable(Destination.NoteScreen.route) {
@@ -399,8 +428,12 @@ fun NavAppHost(
                 FredScreen()
 
             }
-            composable(Destination.Image.route) {
-                ImageScreen(imageViewModel = imageViewModel)
+            composable(
+                Destination.Image.route,
+                arguments = listOf(navArgument("macAddress") { type = NavType.StringType })
+            ) {navBackStackEntry->
+                val macAddress = navBackStackEntry.arguments?.getString("macAddress") ?: ""
+                ImageScreen(imageViewModel = imageViewModel, macAddress, padding, tentViewModel)
             }
             composable(Destination.SplashScreen.route) {
                 AppSplashScreen(navController)
@@ -420,7 +453,8 @@ fun NavAppHost(
                 TentSelectionScreen(
                     tentViewModel = tentViewModel,
                     navController = navController,
-                    filterType = filter
+                    filterType = filter,
+                    paddingValues = padding
                 )
             }
             //for remote mode specifically.

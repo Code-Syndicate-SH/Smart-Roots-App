@@ -209,9 +209,12 @@ fun Dashboard(
                     onClick = {
                         when {
                             feature.isCamera -> {
+                                if(macAddress!=null) {
+                                    navController.navigate(Destination.Image.createRoute(macAddress))
 
-                                navController.navigate(Destination.Image.route)
-                            }
+                                }else{
+                                    Toast.makeText(context, "No device selected for camera view.", Toast.LENGTH_SHORT).show()
+                                }}
 
 
 

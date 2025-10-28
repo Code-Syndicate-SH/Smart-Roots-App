@@ -1,6 +1,7 @@
 package com.example.smarthydro.viewmodels
 
 import android.util.Log
+import androidx.compose.ui.util.fastFirstOrNull
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smarthydro.models.TentModel
@@ -8,6 +9,7 @@ import com.example.smarthydro.repositories.TentRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -46,13 +48,19 @@ class TentViewModel : ViewModel() {
             }
         }
     }
+    fun currentTent(tent: TentModel){
 
-    // This function is no longer needed here as the logic is handled in loadAllTents
-    // fun updateTentList(tents: List<TentModel>) {
-    //     _tentManagement.update {
-    //         it.copy(tents = tents)
-    //     }
-    // }
+        _tentUIState.update {
+            it.copy(
+                macAddress = tent.macAddress,
+                name =  tent.tentName,
+                tentType = tent.tentType,
+                location =  tent.tentLocation,
+                country = tent.country,
+                organizationName = tent.organizationName
+            )
+        }
+    }
 }
 
 data class TentManagementState(
@@ -68,4 +76,5 @@ data class TentUIState(
     val organizationName: String = "",
     val tentType: String = "",
     val location: String = "",
+    val name:String = ""
 )

@@ -6,7 +6,17 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -15,20 +25,32 @@ import androidx.compose.material.icons.filled.Grass
 import androidx.compose.material.icons.filled.LocalFlorist
 import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.navigation.NavController
-import com.example.smarthydro.Destination // Assuming this is your navigation destination
+import com.example.smarthydro.Destination
 import com.example.smarthydro.R
 import leagueSpartan
 
@@ -36,7 +58,7 @@ import leagueSpartan
 fun HomeScreen(
     navController: NavController,
 
-) {
+    ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -76,9 +98,9 @@ fun HomeScreen(
                 onClick = { navController.navigate(Destination.TentSelection.createRoute("fodder")) }
             )
             HomeListTile(
-                icon = Icons.Default.Notes ,
+                icon = Icons.Default.Notes,
                 title = "Notes",
-                onClick = {navController.navigate(Destination.NoteScreen.route)}
+                onClick = { navController.navigate(Destination.NoteScreen.route) }
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -107,7 +129,10 @@ private fun HomeListTile(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 18.dp), // Increased vertical padding for better spacing
+                .padding(
+                    horizontal = 14.dp,
+                    vertical = 18.dp
+                ), // Increased vertical padding for better spacing
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
@@ -211,4 +236,11 @@ private fun LanguageSelector(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+@Composable
+fun ScreenRouteHeading(screenRoute: String, image: Int) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        Text(text = screenRoute, style = TextStyle(fontSize = 20.sp), modifier = Modifier.padding(10.dp))
+        Image(painter = painterResource(image), contentDescription = "", modifier = Modifier.size(20.dp).padding(10.dp)) }
 }
