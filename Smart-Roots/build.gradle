@@ -32,6 +32,7 @@ android {
         def geminiFromLocal   = readLocalProp("GEMINI_API_KEY")
         def geminiApiKey      = geminiFromProject ?: geminiFromLocal ?: ""
 
+
         buildConfigField "String", "GEMINI_API_KEY", "\"${geminiApiKey}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

@@ -5,17 +5,25 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,120 +34,180 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.smarthydro.data.TfLiteAgeClassifier
 import com.example.smarthydro.domain.Classification
 import com.example.smarthydro.ui.theme.analyzer.AgeImageAnalyzer
 import com.example.smarthydro.ui.theme.analyzer.FaceImageAnalyzer
-import com.google.mlkit.vision.face.Face
+import kotlinx.coroutines.delay
 
+
+private enum class CameraUiState {
+    Searching,
+    Analyzing,
+    Success
+}
 
 @Composable
-fun AgeCameraScreen(context: Context, navigateToHomeScreen: () -> Unit) {
+fun AgeCameraScreen(navigateToLoadingScreen: () -> Unit) {
+
+    val context = LocalContext.current
+
     var classifications by remember { mutableStateOf(emptyList<Classification>()) }
-    var faces by remember { mutableStateOf(emptyList<Face>()) }
+    var uiState by remember { mutableStateOf(CameraUiState.Searching) }
+    val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
+
+    var age by remember {
+        mutableStateOf(sharedPreferences.getString("age_category", "0"))
+    }
+    if (age.toString().isNotEmpty() && age != "0") {
+        navigateToLoadingScreen()
+    }
     val ageImageAnalyzer = remember {
         AgeImageAnalyzer(
-            classifier = TfLiteAgeClassifier(
-                context = context
-            ),
-            onAgeResults = {
-                classifications = it
-            },
+            classifier = TfLiteAgeClassifier(context = context),
+            onAgeResults = { results ->
+                if (results.isNotEmpty()) {
+                    classifications = results
 
-            )
-    }
-    val faceImageAnalyzer = remember {
-        FaceImageAnalyzer(
-            ageAnalyzer = ageImageAnalyzer
+                    if (results.any { it.age > 0 }) {
+                        sharedPreferences.edit()
+                            .putString("age_category", results[0].age.toString()).apply()
+                        uiState = CameraUiState.Success
+                    } else {
+
+                        uiState = CameraUiState.Analyzing
+                    }
+                } else {
+
+                    uiState = CameraUiState.Searching
+                }
+            }
         )
     }
+    val faceImageAnalyzer = remember { FaceImageAnalyzer(ageAnalyzer = ageImageAnalyzer) }
 
     val cameraController = remember {
         LifecycleCameraController(context).apply {
             setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
             setImageAnalysisAnalyzer(ContextCompat.getMainExecutor(context), faceImageAnalyzer)
+            cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA // Simplified selector
         }
     }
 
-    LaunchedEffect(classifications.isNotEmpty<Classification>()) {
-        for (classification in classifications) {
-            if (classifications.size > 0 && classification.age >= 0 && classification.score>0.25f) {
-                navigateToHomeScreen()
-            }
+
+    LaunchedEffect(uiState) {
+        if (uiState == CameraUiState.Success) {
+            // Wait a moment so the user can see the success message
+            delay(1500L)
+            navigateToLoadingScreen()
         }
     }
-    var displayText = when {
-        classifications.isEmpty() -> "No faces detected, please face the camera"
-        classifications[0].age >= 0 -> "Please hold still, almost there"
-        else -> "Unknown objects detected, face the camera and hold still"
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            "Smart Roots",
-            fontStyle = FontStyle.Companion.Italic,
-            fontSize = 40.sp,
-            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-            modifier = Modifier,
-            color = Color.White
-        )
 
-        AgeCameraPreview(
-            controller = cameraController,
+    // --- UI Structure ---
+    Scaffold { paddingValues ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.8f)
-                .fillMaxHeight(0.6f)
-        )
-        Box(modifier = Modifier.fillMaxWidth(0.8f).padding(20.dp).clip(RoundedCornerShape(10.dp)).background(
-            Color.White
-        ), contentAlignment = Alignment.BottomCenter) {
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // App Title - Using MaterialTheme for typography
             Text(
-                text = displayText, modifier = Modifier
-                    .width(300.dp)
-                    .padding(8.dp)
-                 ,
-                textAlign = TextAlign.Center,
-                fontSize = 20.sp,
-                color = MaterialTheme.colorScheme.primary
+                text = "Smart Roots", // Consider moving to string resources
+                style = MaterialTheme.typography.displayMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            // Camera Preview with a guiding frame
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.8f)
+                    .aspectRatio(3 / 4f) // Maintain a consistent aspect ratio
+                    .clip(RoundedCornerShape(24.dp))
+                    .border(
+                        width = 4.dp,
+                        color = MaterialTheme.colorScheme.primary,
+                        shape = RoundedCornerShape(24.dp)
+                    )
+            ) {
+                AgeCameraPreview(
+                    controller = cameraController,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Status Box with animated text
+            StatusBox(
+                uiState = uiState,
+                classificationResult = classifications.firstOrNull()?.age_class ?: ""
             )
         }
-
-
-
     }
 }
 
 @Composable
-fun AgeCameraPreview(modifier: Modifier, controller: LifecycleCameraController) {
+private fun AgeCameraPreview(
+    controller: LifecycleCameraController,
+    modifier: Modifier = Modifier,
+) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    var cameraSelector: CameraSelector = CameraSelector.Builder()
-        .requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-        .build()
     AndroidView(
         factory = {
             PreviewView(it).apply {
                 this.controller = controller
-                this.controller?.cameraSelector = cameraSelector
                 controller.bindToLifecycle(lifecycleOwner)
-
             }
         },
-        modifier = modifier.clip(RoundedCornerShape(10.dp))
+        modifier = modifier
     )
-
-
 }
 
+@Composable
+private fun StatusBox(
+    uiState: CameraUiState,
+    classificationResult: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth(0.8f)
+            .height(100.dp) // Fixed height for stability
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        // --- UX Improvement: Animate text changes ---
+        AnimatedContent(
+            targetState = uiState,
+            label = "StatusTextAnimation",
+            transitionSpec = {
+                fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
+            }
+        ) { targetState ->
+            val textToShow = when (targetState) {
+                CameraUiState.Searching -> "Position your face in the frame"
+                CameraUiState.Analyzing -> "Hold still, analyzing..."
+                CameraUiState.Success -> "Success!\nAge detected: $classificationResult"
+            }
+            Text(
+                text = textToShow,
+                modifier = Modifier.padding(16.dp),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
