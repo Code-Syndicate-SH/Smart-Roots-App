@@ -78,9 +78,11 @@ sealed class Destination(val route: String) {
     object DashboardWithMac : Destination("Dashboard/{macAddress}") {
         fun createRoute(macAddress: String) = "Dashboard/$macAddress"
     }
+
     object TentSelection : Destination("TentSelection/{filterType}") {
         fun createRoute(filterType: String) = "TentSelection/$filterType"
     }
+
     object Loading : Destination("Loading")
 
 }
@@ -312,6 +314,7 @@ fun NavAppHost(
         Destination.Home.route,
         Destination.SplashScreen.route,
         Destination.AgeCamera.route,
+        Destination.Loading.route,
             -> false
 
         else -> true
@@ -416,8 +419,9 @@ fun NavAppHost(
                 val filter = backstackEntry.arguments?.getString("filterType") ?: ""
                 TentSelectionScreen(
                     tentViewModel = tentViewModel,
-                  navController = navController,
-                    filterType = filter)
+                    navController = navController,
+                    filterType = filter
+                )
             }
             //for remote mode specifically.
             composable(
@@ -447,7 +451,7 @@ fun NavAppHost(
                     val hapticFeedback = HapticFeedback()
                     hapticFeedback(context)
                     navController.navigate(Destination.Loading.route) {
-                        popUpTo(Destination.AgeCamera.route){inclusive = true}
+                        popUpTo(Destination.AgeCamera.route) { inclusive = true }
                     }
                 })
             }
