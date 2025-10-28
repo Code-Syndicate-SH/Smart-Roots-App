@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Grass
 import androidx.compose.material.icons.filled.LocalFlorist
+import androidx.compose.material.icons.filled.Notes
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -66,13 +67,18 @@ fun HomeScreen(
                 icon = Icons.Default.LocalFlorist,
                 title = "Vegetables",
                 // MODIFIED: Navigate to tent selection with "vegetable" filter
-                onClick = { navController.navigate(Destination.TentSelection.createRoute("vegetable")) }
+                onClick = { navController.navigate(Destination.TentSelection.createRoute("veg")) }
             )
             HomeListTile(
                 icon = Icons.Default.Grass,
                 title = "Fodder",
                 // MODIFIED: Navigate to tent selection with "fodder" filter
                 onClick = { navController.navigate(Destination.TentSelection.createRoute("fodder")) }
+            )
+            HomeListTile(
+                icon = Icons.Default.Notes ,
+                title = "Notes",
+                onClick = {navController.navigate(Destination.NoteScreen.route)}
             )
             Spacer(modifier = Modifier.height(16.dp))
         }

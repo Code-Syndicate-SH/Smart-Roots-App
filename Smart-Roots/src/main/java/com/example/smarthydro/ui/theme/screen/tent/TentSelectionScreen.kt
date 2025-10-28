@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.HomeWork
 import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material3.CircularProgressIndicator
@@ -36,12 +37,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.smarthydro.Destination
+import com.example.smarthydro.R // Make sure this import is correct
 import com.example.smarthydro.models.TentModel
 import com.example.smarthydro.viewmodels.TentViewModel
 import leagueSpartan
@@ -86,7 +90,6 @@ fun TentSelectionScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        // <-- FIX: Check the isLoading flag FIRST -->
         if (state.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -94,7 +97,6 @@ fun TentSelectionScreen(
             ) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             }
-            // This will only be checked AFTER loading is false
         } else if (filteredTents.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -130,6 +132,13 @@ fun TentSelectionScreen(
     }
 }
 
+/**
+ * An updated list item that displays tent details with corresponding icons.
+ * NOTE: This composable assumes your `TentModel` has `tentName`, `organizationName`,
+ * and `tentLocation` properties.
+ * It also assumes you have drawable resources named `name.png` and `location.png`
+ * in your `res/drawable` folder.
+ */
 @Composable
 private fun TentListTile(
     tent: TentModel,
@@ -148,46 +157,92 @@ private fun TentListTile(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Main Icon
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(56.dp)
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Icon(
                         imageVector = Icons.Default.HomeWork,
                         contentDescription = "Tent",
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.size(16.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = tent.organizationName,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = leagueSpartan
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    // You had tent.tentLocation here, but the model has tent.location
-                    text = tent.tentLocation,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            // Details Column
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                // Tent Name
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        // Assumes a drawable resource R.drawable.name exists
+                        painter = painterResource(id = R.drawable.name),
+                        contentDescription = "Tent Name",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.Unspecified
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        text = tent.tentName,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = leagueSpartan
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Organization Name
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Business,
+                        contentDescription = "Organization",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.Unspecified
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        text = tent.organizationName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // Location Name
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        // Assumes a drawable resource R.drawable.location exists
+                        painter = painterResource(id = R.drawable.location),
+                        contentDescription = "Location",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.Unspecified
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(
+                        text = tent.tentLocation,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
 
+            // Navigation Arrow
             Icon(
                 imageVector = Icons.Rounded.KeyboardArrowRight,
                 contentDescription = null,

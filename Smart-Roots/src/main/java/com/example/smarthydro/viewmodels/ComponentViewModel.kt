@@ -26,6 +26,8 @@ class ComponentViewModel : ViewModel() {
                 )
                 if (macAddress != null) {
                     repository.toggleComponent(componentModel = componentModel, macAddress = macAddress)
+                }else{
+                    Log.d("ComponentViewModel", "There is no data being passed")
                 }
 
             } catch (e: Exception) {

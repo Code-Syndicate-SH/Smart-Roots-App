@@ -213,13 +213,7 @@ fun Dashboard(
                                 navController.navigate(Destination.Image.route)
                             }
 
-                            feature.isChatbot -> {
-                                navController.navigate(Destination.Fred.route)
-                            }
 
-                            feature.isNote -> {
-                                navController.navigate(Destination.NoteScreen.route)
-                            }
 
                             else -> {
                                 readingViewModel.setReadingType(
@@ -957,24 +951,8 @@ private fun getFeatures(sensorData: SensorModel, language: String): List<Feature
         )
     }
     return features + listOf(
-        Feature(
-            title = "Chatbot",
-            iconId = R.drawable.ai,
-            mediumColor = Color.Transparent,
-            lightColor = Color.Transparent,
-            darkColor = Color.DarkGray,
-            sensorReading = "",
-            isChatbot = true
-        ),
-        Feature(
-            title = "Notes",
-            iconId = R.drawable.menu_book_24px,
-            mediumColor = Color.Transparent,
-            lightColor = Color.Transparent,
-            darkColor = Color.DarkGray,
-            sensorReading = "",
-            isNote = true
-        ),
+
+
         Feature(
             title = "Camera",
             iconId = R.drawable.ic_camera,

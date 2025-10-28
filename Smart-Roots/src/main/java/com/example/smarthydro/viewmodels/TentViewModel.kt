@@ -26,6 +26,7 @@ class TentViewModel : ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val listOfTents = repository.getAllTents()
+                Log.d("Tents", listOfTents.count().toString())
                 // When finished, update the list AND set loading to false
                 _tentManagement.update {
                     it.copy(
