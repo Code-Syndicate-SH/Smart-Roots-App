@@ -326,7 +326,7 @@ fun NavAppHost(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Home", // avoid missing R.string.dashboard
+                            text  =  "Smart Roots",
                             fontWeight = FontWeight.Medium
                         )
                     },
