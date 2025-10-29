@@ -1,6 +1,11 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.example.smarthydro.viewmodels
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.text2.input.TextFieldState
+import androidx.compose.foundation.text2.input.rememberTextFieldState
 import androidx.compose.ui.util.fastFirstOrNull
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -18,6 +23,7 @@ class TentViewModel : ViewModel() {
     private val repository = TentRepository()
     private val _tentManagement = MutableStateFlow(TentManagementState())
     val tentManagementState = _tentManagement.asStateFlow()
+    val passwordState= TextFieldState()
 
     private val _tentUIState = MutableStateFlow(TentUIState())
     val tentUIState = _tentUIState.asStateFlow()
@@ -60,6 +66,10 @@ class TentViewModel : ViewModel() {
                 organizationName = tent.organizationName
             )
         }
+    }
+
+    fun verifyInput(password:String){
+
     }
 }
 

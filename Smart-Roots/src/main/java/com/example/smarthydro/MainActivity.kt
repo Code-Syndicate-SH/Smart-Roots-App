@@ -108,37 +108,28 @@ class MainActivity : ComponentActivity() {
         return super.getApplicationContext()
     }
 
-    private val requestCameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted && !hasRequiredCameraPermission()) {
-            if (ActivityCompat.checkSelfPermission(
-                    applicationContext!!,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return@registerForActivityResult
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted && !isPermissionNotificationShown()) {
+                pushNotification(
+                    this,
+                    "Permission Granted",
+                    "You can now receive notifications.",
+                    isSilent = false
+                )
+                setPermissionNotificationShown(true)
             }
 
-            setCameraPermission(true)
+            // After finishing with notification, continue to camera
+            requestCameraPermissionIfNeeded()
         }
 
-    }
-    private val requestNotificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted && !isPermissionNotificationShown()) {
-
-            pushNotification(
-                this,
-                "Permission Granted",
-                "You can now receive notifications.",
-                isSilent = false
-            )
-            setPermissionNotificationShown(true)
+    private val requestCameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted && !hasRequiredCameraPermission()) {
+                setCameraPermission(true)
+            }
         }
-
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -154,22 +145,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-        }
+       requestAllPermissions()
 
         setContent {
             SmartHydroTheme {
@@ -186,7 +162,34 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private fun requestAllPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Start with notifications
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
 
+                requestCameraPermissionIfNeeded()
+            }
+        } else {
+
+            requestCameraPermissionIfNeeded()
+        }
+    }
+
+    private fun requestCameraPermissionIfNeeded() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
     private fun hasRequiredCameraPermission(): Boolean {
         return getSharedPreferences(
             "camera_prefs",
