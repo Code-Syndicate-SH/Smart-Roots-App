@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,7 +25,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -39,8 +45,10 @@ import androidx.navigation.navArgument
 import com.example.smarthydro.chat.FredScreen
 import com.example.smarthydro.chat.di.fredModule
 import com.example.smarthydro.domain.HapticFeedback
+import com.example.smarthydro.ui.theme.AutoBlue
 import com.example.smarthydro.ui.theme.DeepBlue
 import com.example.smarthydro.ui.theme.SO_OnSurf_D
+import com.example.smarthydro.ui.theme.SO_Primary_D
 import com.example.smarthydro.ui.theme.SO_Surf_D
 import com.example.smarthydro.ui.theme.SmartHydroTheme
 import com.example.smarthydro.ui.theme.screen.AppBottomBar
@@ -72,15 +80,20 @@ sealed class Destination(val route: String) {
     object AgeCamera : Destination("Age")
     object SplashScreen : Destination("Splash")
     object Fred : Destination("Fred")
-    object Image : Destination("Image")
+    object Image : Destination("Image/{macAddress}") {
+        fun createRoute(macAddress: String) = "Image/$macAddress"
+    }
+
     object TentManagement : Destination("TentManagement")
     object Dashboard : Destination("Dashboard")
     object DashboardWithMac : Destination("Dashboard/{macAddress}") {
         fun createRoute(macAddress: String) = "Dashboard/$macAddress"
     }
+
     object TentSelection : Destination("TentSelection/{filterType}") {
         fun createRoute(filterType: String) = "TentSelection/$filterType"
     }
+
     object Loading : Destination("Loading")
 
 }
@@ -95,37 +108,28 @@ class MainActivity : ComponentActivity() {
         return super.getApplicationContext()
     }
 
-    private val requestCameraPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted && !hasRequiredCameraPermission()) {
-            if (ActivityCompat.checkSelfPermission(
-                    applicationContext!!,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                return@registerForActivityResult
+    private val requestNotificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted && !isPermissionNotificationShown()) {
+                pushNotification(
+                    this,
+                    "Permission Granted",
+                    "You can now receive notifications.",
+                    isSilent = false
+                )
+                setPermissionNotificationShown(true)
             }
 
-            setCameraPermission(true)
+            // After finishing with notification, continue to camera
+            requestCameraPermissionIfNeeded()
         }
 
-    }
-    private val requestNotificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted && !isPermissionNotificationShown()) {
-
-            pushNotification(
-                this,
-                "Permission Granted",
-                "You can now receive notifications.",
-                isSilent = false
-            )
-            setPermissionNotificationShown(true)
+    private val requestCameraPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted && !hasRequiredCameraPermission()) {
+                setCameraPermission(true)
+            }
         }
-
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -141,22 +145,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
-        }
+       requestAllPermissions()
 
         setContent {
             SmartHydroTheme {
@@ -173,7 +162,34 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private fun requestAllPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Start with notifications
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
 
+                requestCameraPermissionIfNeeded()
+            }
+        } else {
+
+            requestCameraPermissionIfNeeded()
+        }
+    }
+
+    private fun requestCameraPermissionIfNeeded() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.CAMERA
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
     private fun hasRequiredCameraPermission(): Boolean {
         return getSharedPreferences(
             "camera_prefs",
@@ -312,6 +328,7 @@ fun NavAppHost(
         Destination.Home.route,
         Destination.SplashScreen.route,
         Destination.AgeCamera.route,
+        Destination.Loading.route,
             -> false
 
         else -> true
@@ -323,8 +340,25 @@ fun NavAppHost(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Home", // avoid missing R.string.dashboard
-                            fontWeight = FontWeight.Medium
+                            buildAnnotatedString {
+                                withStyle(style = SpanStyle(color = SO_Primary_D)) {
+                                    append("S")
+                                }
+                                append("mart ")
+
+                                withStyle(
+                                    style = SpanStyle(
+                                        fontWeight = FontWeight.Bold,
+                                        color = AutoBlue
+                                    )
+                                ) {
+                                    append("R")
+                                }
+                                append("oots")
+                            },
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.fillMaxWidth(0.9f),
+                            textAlign = TextAlign.Center
                         )
                     },
                     navigationIcon = {
@@ -379,7 +413,8 @@ fun NavAppHost(
                 TentSelectionScreen(
                     navController = navController,
                     filterType = filter,
-                    tentViewModel = tentViewModel // Pass the ViewModel instance
+                    tentViewModel = tentViewModel, // Pass the ViewModel instance,
+                    paddingValues = padding
                 )
             }
             composable(Destination.NoteScreen.route) {
@@ -396,8 +431,12 @@ fun NavAppHost(
                 FredScreen()
 
             }
-            composable(Destination.Image.route) {
-                ImageScreen(imageViewModel = imageViewModel)
+            composable(
+                Destination.Image.route,
+                arguments = listOf(navArgument("macAddress") { type = NavType.StringType })
+            ) {navBackStackEntry->
+                val macAddress = navBackStackEntry.arguments?.getString("macAddress") ?: ""
+                ImageScreen(imageViewModel = imageViewModel, macAddress, padding, tentViewModel)
             }
             composable(Destination.SplashScreen.route) {
                 AppSplashScreen(navController)
@@ -416,8 +455,10 @@ fun NavAppHost(
                 val filter = backstackEntry.arguments?.getString("filterType") ?: ""
                 TentSelectionScreen(
                     tentViewModel = tentViewModel,
-                  navController = navController,
-                    filterType = filter)
+                    navController = navController,
+                    filterType = filter,
+                    paddingValues = padding
+                )
             }
             //for remote mode specifically.
             composable(
@@ -447,7 +488,7 @@ fun NavAppHost(
                     val hapticFeedback = HapticFeedback()
                     hapticFeedback(context)
                     navController.navigate(Destination.Loading.route) {
-                        popUpTo(Destination.AgeCamera.route){inclusive = true}
+                        popUpTo(Destination.AgeCamera.route) { inclusive = true }
                     }
                 })
             }

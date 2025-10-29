@@ -92,7 +92,7 @@ fun SensorDetailScreen(
         val value = getCurrentValue(spec.key, sensorData)
         determineStatus(value, spec.idealRange)
     }
-
+    val macAddress:String? = readingType.macAddress
     Scaffold(
         topBar = {
             TopAppBar(
@@ -130,7 +130,8 @@ fun SensorDetailScreen(
 
             ControlPanel(
                 spec = spec,
-                componentViewModel = componentViewModel
+                componentViewModel = componentViewModel,
+                macAddress = macAddress
             )
 
             SRSectionCard(
@@ -156,7 +157,7 @@ fun SensorDetailScreen(
 }
 
 @Composable
-private fun ControlPanel(spec: SensorSpec, componentViewModel: ComponentViewModel) {
+private fun ControlPanel(spec: SensorSpec, componentViewModel: ComponentViewModel, macAddress:String?=null) {
     val openAlertDialogLow = remember { mutableStateOf(false) }
     val openAlertDialogUp = remember { mutableStateOf(false) }
     var switchState by remember { mutableStateOf(false) }
@@ -174,10 +175,10 @@ private fun ControlPanel(spec: SensorSpec, componentViewModel: ComponentViewMode
                         onCheckedChange = {
                             switchState = it
                             when (spec.key) {
-                                "temperature" -> componentViewModel.setFan()
-                                "light" -> componentViewModel.setLight()
-                                "humidity" -> componentViewModel.setExtractor()
-                                "water" -> componentViewModel.setPump()
+                                "temperature" -> componentViewModel.setFan(macAddress)
+                                "light" -> componentViewModel.setLight(macAddress)
+                                "humidity" -> componentViewModel.setExtractor(macAddress)
+                                "water" -> componentViewModel.setPump(macAddress)
                             }
                         }
                     )
@@ -210,7 +211,7 @@ private fun ControlPanel(spec: SensorSpec, componentViewModel: ComponentViewMode
                 AlertDialogModel(
                     onDismissRequest = { openAlertDialogUp.value = false },
                     onConfirmation = {
-                        if (spec.key == "ph") componentViewModel.setPhUp() else componentViewModel.setEcUp()
+                        if (spec.key == "ph") componentViewModel.setPhUp(macAddress) else componentViewModel.setEcUp(macAddress)
                         openAlertDialogUp.value = false
                     },
                     dialogTitle = "Increase Solution",

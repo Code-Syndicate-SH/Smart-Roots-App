@@ -14,7 +14,7 @@ class SensorRepository {
         return sensorService.getSensorData()
     }
     //the second url's method is defined
-    suspend fun getRemoteSensorData(callback:(RemoteSensorModel)->Unit): SensorStreamClient {
-        return SensorService.sensorStream(callback)
+    suspend fun getRemoteSensorData(callback:(RemoteSensorModel)->Unit,macAddress: String): SensorStreamClient {
+        return SensorService.sensorStream(callback, macAddress)
     }
 }

@@ -9,8 +9,8 @@ import com.example.smarthydro.services.ImageService
  */
 class ImageRepository {
   private val imageService = ImageService.retrofitClient()
-    suspend fun fetchLatestImage(): ImageModel{
-        return imageService.getLatestImage()
+    suspend fun fetchLatestImage(macAddress: String): ImageModel{
+        return imageService.getLatestImage(macAddress)
     }
 
 }

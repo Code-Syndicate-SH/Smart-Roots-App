@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smarthydro.repositories.ImageRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,14 +22,34 @@ class ImageViewModel : ViewModel() {
     val uiState: StateFlow<ImageUIState> = _uiState.asStateFlow()
 
     private val repository: ImageRepository = ImageRepository()
+    private var periodicFetchJob: Job? = null // To manage the lifecycle of the loop
 
     init {
+        // HIGHLIGHT #1: Start the single, managed loop when the ViewModel is created.
         startPeriodicFetch()
     }
 
-    /** Starts a coroutine that fetches the latest image every 5 minutes */
+    /**
+     * This is the main function the UI should call.
+     * It updates the state with the new macAddress and triggers an immediate fetch.
+     */
+    fun loadImagesForDevice(macAddress: String) {
+        _uiState.update {
+  
+            it.copy(
+                macAddress = macAddress,
+                imageUrl = "",
+                errorMessage = "",
+            )
+        }
+
+        fetchLatestImage()
+    }
+
     private fun startPeriodicFetch() {
-        viewModelScope.launch(Dispatchers.IO) {
+
+        periodicFetchJob?.cancel()
+        periodicFetchJob = viewModelScope.launch(Dispatchers.IO) {
             while (true) {
                 fetchLatestImage()
                 delay(FETCH_INTERVAL_MS)
@@ -36,40 +57,40 @@ class ImageViewModel : ViewModel() {
         }
     }
 
-    /** Fetch the latest image once */
+    /**
+     * Fetch the latest image once. It reads the macAddress from the UI state.
+     * This function now takes no parameters.
+     */
     private fun fetchLatestImage() {
+
+        val currentMacAddress = _uiState.value.macAddress
+        if (currentMacAddress.isBlank()) {
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val imageUrl = repository.fetchLatestImage().url
+                val imageUrl = repository.fetchLatestImage(macAddress = currentMacAddress).url
                 if (imageUrl.isBlank()) {
                     updateErrorMessage(
-                        "No images from ${_uiState.value.tentName} at location ${_uiState.value.tentLocation}."
+                        "No images available for this device."
                     )
                     return@launch
                 }
                 updateImage(imageUrl)
             } catch (ex: Exception) {
-                updateErrorMessage("There was an error fetching the most recent image.")
-                Log.e(TAG, "Error trying to load image", ex)
+                updateErrorMessage("Error fetching the most recent image.")
+                Log.e(TAG, "Error trying to load image for $currentMacAddress", ex)
             }
         }
     }
 
-    /** Update tent information */
-    fun updateTentInformation(tentLocation: String, tentName: String) {
-        _uiState.update {
-            it.copy(tentLocation = tentLocation, tentName = tentName)
-        }
-    }
-
-    /** Update UI with an error message */
     private fun updateErrorMessage(errorMessage: String) {
         _uiState.update {
             it.copy(errorMessage = errorMessage, imageUrl = "")
         }
     }
 
-    /** Update UI with the latest image */
     private fun updateImage(url: String) {
         _uiState.update {
             it.copy(imageUrl = url, lastUpdated = System.currentTimeMillis(), errorMessage = "")
@@ -78,9 +99,9 @@ class ImageViewModel : ViewModel() {
 }
 
 data class ImageUIState(
+    val macAddress: String = "",
     val imageUrl: String = "",
     val lastUpdated: Long = 0,
-    val tentLocation: String = "",
-    val tentName: String = "",
+
     val errorMessage: String = "",
 )

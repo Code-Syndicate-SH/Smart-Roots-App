@@ -4,6 +4,7 @@ import com.example.smarthydro.models.ImageModel
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
+import retrofit2.http.Path
 
 private const val BASE_URL = "https://smart-roots-server.onrender.com"
 
@@ -22,7 +23,7 @@ object ImageService {
 }
 
 interface ImageApi{
-    @GET("/api/images")
-   suspend fun getLatestImage(): ImageModel
+    @GET("/api/images/{macAddress}")
+   suspend fun getLatestImage(@Path("macAddress") macAddress: String): ImageModel
 }
 

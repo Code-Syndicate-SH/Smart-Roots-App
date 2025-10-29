@@ -147,13 +147,14 @@ fun Dashboard(
     val sensorData by viewModel.sensorData.observeAsState(SensorModel())
 
 
-    LaunchedEffect(viewModel.isLocal) {
-        if (viewModel.isLocal) {
+    LaunchedEffect(macAddress) {
+        if (macAddress==null) {
             viewModel.fetchSensorPeriodically(GET_SENSOR_DATA_DELAY_MS)
         } else {
-            viewModel.fetchRemoteSensorData()
+            viewModel.fetchRemoteSensorData(macAddress = macAddress)
         }
     }
+
 
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("AppPreferences", Context.MODE_PRIVATE)
@@ -208,21 +209,18 @@ fun Dashboard(
                     onClick = {
                         when {
                             feature.isCamera -> {
+                                if(macAddress!=null) {
+                                    navController.navigate(Destination.Image.createRoute(macAddress))
 
-                                navController.navigate(Destination.Image.route)
-                            }
+                                }else{
+                                    Toast.makeText(context, "No device selected for camera view.", Toast.LENGTH_SHORT).show()
+                                }}
 
-                            feature.isChatbot -> {
-                                navController.navigate(Destination.Fred.route)
-                            }
 
-                            feature.isNote -> {
-                                navController.navigate(Destination.NoteScreen.route)
-                            }
 
                             else -> {
                                 readingViewModel.setReadingType(
-                                    ReadingType(feature.title, sensorData, "")
+                                    ReadingType(feature.title, sensorData, "", macAddress =if( macAddress!=null)macAddress else null)
                                 )
                                 navController.navigate("viewData")
                             }
@@ -956,24 +954,8 @@ private fun getFeatures(sensorData: SensorModel, language: String): List<Feature
         )
     }
     return features + listOf(
-        Feature(
-            title = "Chatbot",
-            iconId = R.drawable.ai,
-            mediumColor = Color.Transparent,
-            lightColor = Color.Transparent,
-            darkColor = Color.DarkGray,
-            sensorReading = "",
-            isChatbot = true
-        ),
-        Feature(
-            title = "Notes",
-            iconId = R.drawable.menu_book_24px,
-            mediumColor = Color.Transparent,
-            lightColor = Color.Transparent,
-            darkColor = Color.DarkGray,
-            sensorReading = "",
-            isNote = true
-        ),
+
+
         Feature(
             title = "Camera",
             iconId = R.drawable.ic_camera,

@@ -23,10 +23,10 @@ object TentService {
 }
 
 interface TentApi {
-    @GET("api/tent")
+    @GET("api/tents")
     suspend fun getAllTents(): List<TentModel>
 
-    @GET("api/tent/{macAddress}")
+    @GET("api/tents/{macAddress}")
     suspend fun getTentWithMacAddress(@Path("macAddress") macAddress: String)
-    // make sure to add other query filters like tent type, organization, etc.
+
 }

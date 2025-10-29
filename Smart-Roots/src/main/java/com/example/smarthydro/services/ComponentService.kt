@@ -48,12 +48,12 @@ interface IRemoteComponent{
   suspend fun getReadings()
 
     /**
-     * @param id
+     * @param macAddress
      * - This is actually the macAddress of the tent that the system is originating from
      * -
      */
-  @PUT("/api/sensors/toggle/{id}")
-  suspend fun toggleComponent(@Body componentModel: ComponentModel, @Path("id" ) id: String)
+  @PUT("/api/sensors/toggle/{macAddress}")
+  suspend fun toggleComponent(@Body componentModel: ComponentModel, @Path("macAddress" ) macAddress: String)
 }
 interface IComponent {
     @GET("light")
@@ -76,26 +76,6 @@ interface IComponent {
     suspend fun pHUp()
     @GET("phDown")
     suspend fun pHDown()
-    //Endpoints for the second url is set up
-    @GET("light")
-    suspend fun toggleLight2()
-    @GET("fan")
-    suspend fun toggleFan2()
-    @GET("extract")
-    suspend fun toggleExtractor2()
-    @GET("pump")
-    suspend fun togglePump2()
-    @GET("ec")
-    suspend fun ec2()
-    @GET("ecUp")
-    suspend fun ecUp2()
-    @GET("ecDown")
-    suspend fun ecDown2()
-    @GET("ph")
-    suspend fun pH2()
-    @GET("phUp")
-    suspend fun pHUp2()
-    @GET("phDown")
-    suspend fun pHDown2()
+
 
 }

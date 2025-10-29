@@ -45,12 +45,12 @@ class SensorViewModel : ViewModel() {
         }
     }
 
-    fun fetchRemoteSensorData(timeoutMillis: Long = 5000) {
+    fun fetchRemoteSensorData(timeoutMillis: Long = 5000, macAddress: String) {
         Log.d(TAG, "fetchRemoteSensorData() called")
         viewModelScope.launch {
             var gotData = false
             try {
-                repository.getRemoteSensorData { reading ->
+                repository.getRemoteSensorData( { reading ->
                     Log.d(TAG, "New remote reading received: $reading")
 
                     _sensorData.postValue(
@@ -68,8 +68,7 @@ class SensorViewModel : ViewModel() {
                     isLocal = false
                     gotData = true
                     Log.d(TAG, "isLocal flag set to $isLocal (remote)")
-                }
-
+                }, macAddress)
                 delay(timeoutMillis)
 
                 if (!gotData) {
