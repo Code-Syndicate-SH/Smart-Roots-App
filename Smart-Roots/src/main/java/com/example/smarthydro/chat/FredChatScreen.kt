@@ -3,7 +3,6 @@ package com.example.smarthydro.chat
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Base64
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,14 +23,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
@@ -39,17 +35,7 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
-// 🧩 Helper: safely decode Base64 to Bitmap for stored chat images
-fun decodeBase64ToBitmap(base64: String): ImageBitmap? {
-    return try {
-        val cleanBase64 = base64.trim().replace("\n", "")
-        val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
-        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-    } catch (e: Exception) {
-        null
-    }
-}
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FredChatScreen(
     messages: List<UiMsg>,
@@ -58,15 +44,15 @@ fun FredChatScreen(
     onSendImage: (String, ByteArray, String) -> Unit
 ) {
     var userInput by remember { mutableStateOf("") }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showImagePickerDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    // 📸 Camera & Gallery launchers
+    // 📸 Launchers
     val takePhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap -> capturedBitmap = bitmap }
@@ -75,12 +61,12 @@ fun FredChatScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> selectedImageUri = uri }
 
-    // 🪟 Choose image source
+    // 🪟 Image picker dialog
     if (showImagePickerDialog) {
         AlertDialog(
             onDismissRequest = { showImagePickerDialog = false },
             title = { Text("Select Image Source") },
-            text = { Text("Choose whether to take a new photo or pick one from your gallery.") },
+            text = { Text("Choose whether to take a photo or pick one from your gallery.") },
             confirmButton = {
                 Button(onClick = {
                     takePhotoLauncher.launch(null)
@@ -98,18 +84,37 @@ fun FredChatScreen(
         )
     }
 
-    // 🧭 Auto-scroll to bottom when new messages or thinking bubble appear
+    // 🧭 Auto-scroll down
     LaunchedEffect(messages.size, isThinking) {
         coroutineScope.launch { listState.animateScrollToItem(messages.size) }
     }
 
-    Scaffold(containerColor = Color(0xFF0D0D0D)) { padding ->
+    Scaffold(
+        topBar = {
+            // 🌿 Visible Green Header Bar
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Fred Chatbot",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF2E7D32), // bright green SmartHydro header
+                    titleContentColor = Color.White
+                )
+            )
+        },
+        containerColor = Color(0xFF0D0D0D)
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 💬 Chat history
+            // 💬 Message list
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -119,8 +124,8 @@ fun FredChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(messages) { msg ->
-                    if (msg.content.startsWith("image://")) {
-                        ChatImageBubble(msg.content.removePrefix("image://"))
+                    if (msg.imageBytes != null) {
+                        ChatImageBubble(msg.imageBytes, isUser = msg.role == "user")
                     } else {
                         ChatBubble(msg.content, isUser = msg.role == "user")
                     }
@@ -131,7 +136,7 @@ fun FredChatScreen(
                 }
             }
 
-            // 🖼 Preview before sending
+            // 🖼 Image preview before sending
             if (capturedBitmap != null || selectedImageUri != null) {
                 Box(
                     modifier = Modifier
@@ -142,23 +147,18 @@ fun FredChatScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     when {
-                        capturedBitmap != null -> {
-                            Image(
-                                bitmap = capturedBitmap!!.asImageBitmap(),
-                                contentDescription = "Captured Photo",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-
-                        selectedImageUri != null -> {
-                            Image(
-                                painter = rememberAsyncImagePainter(selectedImageUri),
-                                contentDescription = "Selected Image",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
+                        capturedBitmap != null -> Image(
+                            bitmap = capturedBitmap!!.asImageBitmap(),
+                            contentDescription = "Captured Photo",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        selectedImageUri != null -> Image(
+                            painter = rememberAsyncImagePainter(selectedImageUri),
+                            contentDescription = "Selected Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
                     }
 
                     IconButton(
@@ -181,7 +181,7 @@ fun FredChatScreen(
                 }
             }
 
-            // 🧑‍🌾 Input area
+            // 🟩 Input bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -220,30 +220,25 @@ fun FredChatScreen(
                         when {
                             capturedBitmap != null -> {
                                 val stream = ByteArrayOutputStream()
-                                capturedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 60, stream) // smaller
+                                capturedBitmap!!.compress(Bitmap.CompressFormat.JPEG, 90, stream)
                                 val bytes = stream.toByteArray()
-                                val base64 = Base64.encodeToString(bytes, Base64.DEFAULT)
-                                onSendImage(userInput.ifBlank { "Analyze this plant" }, bytes, "image/jpeg")
-                                onSend("image://$base64")
+                                onSendImage(userInput, bytes, "image/jpeg")
                                 capturedBitmap = null
                                 userInput = ""
                             }
-
                             selectedImageUri != null -> {
                                 val resolver = context.contentResolver
-                                val inputStream: InputStream? = resolver.openInputStream(selectedImageUri!!)
+                                val inputStream: InputStream? =
+                                    resolver.openInputStream(selectedImageUri!!)
                                 val bytes = inputStream?.readBytes()
                                 inputStream?.close()
 
                                 if (bytes != null) {
-                                    val base64 = Base64.encodeToString(bytes, Base64.DEFAULT)
-                                    onSendImage(userInput.ifBlank { "Analyze this plant" }, bytes, "image/jpeg")
-                                    onSend("image://$base64")
+                                    onSendImage(userInput, bytes, "image/jpeg")
                                 }
                                 selectedImageUri = null
                                 userInput = ""
                             }
-
                             userInput.isNotBlank() -> {
                                 onSend(userInput)
                                 userInput = ""
@@ -265,46 +260,12 @@ fun FredChatScreen(
     }
 }
 
-// 🌿 Fred’s chat bubble with bullet + bold text
+// 💬 Chat bubble (text)
 @Composable
 fun ChatBubble(message: String, isUser: Boolean) {
     val bubbleColor = if (isUser) Color(0xFF43A047) else Color(0xFF1E1E1E)
     val textColor = if (isUser) Color.White else Color(0xFFEAEAEA)
     val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
-
-    val formattedText = remember(message) {
-        buildAnnotatedString {
-            val lines = message.split("\n")
-            for (line in lines) {
-                when {
-                    line.trim().startsWith("* ") || line.trim().startsWith("- ") -> {
-                        append("• ")
-                        append(line.trim().removePrefix("* ").removePrefix("- "))
-                    }
-                    line.contains("**") -> {
-                        var remaining = line
-                        var bold = false
-                        while (remaining.contains("**")) {
-                            val start = remaining.indexOf("**")
-                            val end = remaining.indexOf("**", start + 2)
-                            if (end == -1) break
-                            val before = remaining.substring(0, start)
-                            val boldText = remaining.substring(start + 2, end)
-                            append(before)
-                            withStyle(style = androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append(boldText)
-                            }
-                            remaining = remaining.substring(end + 2)
-                            bold = true
-                        }
-                        if (!bold) append(remaining)
-                    }
-                    else -> append(line)
-                }
-                append("\n")
-            }
-        }
-    }
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = alignment) {
         Card(
@@ -313,9 +274,10 @@ fun ChatBubble(message: String, isUser: Boolean) {
             modifier = Modifier.widthIn(max = 320.dp)
         ) {
             Text(
-                text = formattedText,
+                text = message.trim(),
                 color = textColor,
                 fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
                 lineHeight = 22.sp,
                 modifier = Modifier.padding(12.dp)
             )
@@ -323,24 +285,17 @@ fun ChatBubble(message: String, isUser: Boolean) {
     }
 }
 
-// 🌱 Display decoded Base64 image in chat
+// 🖼 Chat bubble (image)
 @Composable
-fun ChatImageBubble(base64: String) {
-    val bitmap = remember(base64) {
-        try {
-            val cleanBase64 = base64.trim().replace("\n", "")
-            val bytes = Base64.decode(cleanBase64, Base64.DEFAULT)
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-        } catch (e: Exception) {
-            null
-        }
-    }
+fun ChatImageBubble(imageBytes: ByteArray, isUser: Boolean) {
+    val alignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
+    val bitmap = remember(imageBytes) { BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size) }
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        contentAlignment = Alignment.CenterEnd
+        contentAlignment = alignment
     ) {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -351,19 +306,14 @@ fun ChatImageBubble(base64: String) {
         ) {
             if (bitmap != null) {
                 Image(
-                    bitmap = bitmap,
+                    bitmap = bitmap.asImageBitmap(),
                     contentDescription = "Sent Image",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF2E7D32), RoundedCornerShape(16.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Loading image...", color = Color.White, fontSize = 14.sp)
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Image unavailable", color = Color.White)
                 }
             }
         }
