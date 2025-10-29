@@ -1,0 +1,60 @@
+name: Android Build (Main Only)
+
+on:
+  push:
+    branches: ["main"] 
+  workflow_dispatch: {}  
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Detect Gradle wrapper directory
+        shell: bash
+        run: |
+          if [ -f "./gradlew" ]; then
+            echo "WRAPPER_DIR=." >> "$GITHUB_ENV"
+          elif [ -f "./Smart-Roots-App/gradlew" ]; then
+            echo "WRAPPER_DIR=Smart-Roots-App" >> "$GITHUB_ENV"
+          else
+            echo "❌ gradlew not found at repo root or Smart-Roots-App/"
+            ls -la
+            exit 1
+          fi
+          echo "Using WRAPPER_DIR=$WRAPPER_DIR"
+
+      - name: Grant Gradle wrapper permission
+        run: chmod +x ./gradlew
+        working-directory: ${{ env.WRAPPER_DIR }}
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon -PGEMINI_API_KEY="$GEMINI_API_KEY"
+        working-directory: ${{ env.WRAPPER_DIR }}
+
+      - name: Upload Debug APK(s)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apks
+          path: "**/build/outputs/apk/debug/*.apk"
