@@ -64,6 +64,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.PopupProperties
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -969,7 +970,6 @@ private fun getFeatures(sensorData: SensorModel, language: String): List<Feature
         )
 }
 
-// ---------------------- Code-1-like tile ----------------------
 
 @Composable
 private fun MetricListTile(
@@ -980,59 +980,64 @@ private fun MetricListTile(
     onClick: () -> Unit,
 ) {
     Surface(
-        shape = RoundedCornerShape(16.dp),
-        tonalElevation = 1.dp,
-        shadowElevation = 0.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+        shape = RoundedCornerShape(20.dp),
+        tonalElevation = 3.dp,
+        shadowElevation = 4.dp,
+        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)),
         color = SO_Surf_D,
         modifier = Modifier
             .fillMaxWidth()
+            .height(120.dp)
             .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Icon container
             Surface(
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
                 color = SO_SurfVar_D,
-                modifier = Modifier.size(44.dp)
+                modifier = Modifier.size(70.dp)
             ) {
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                     Image(
                         painter = painterResource(id = iconRes),
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
             }
 
-            Spacer(Modifier.size(12.dp))
+            Spacer(Modifier.size(20.dp))
 
+            // Texts
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 8.dp)
+                    .padding(end = 12.dp)
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
                         fontFamily = leagueSpartan,
-                        color = SO_OnSurf_D
+                        color = SO_OnSurf_D,
+                        fontSize = 22.sp
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (value.isNotBlank()) {
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         text = value,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium,
-                            color = valueTint
+                        style = MaterialTheme.typography.displaySmall.copy( // 🟢 Huge value
+                            fontWeight = FontWeight.ExtraBold,
+                            color = valueTint,
+                            fontSize = 32.sp // 🟢 Bigger numeric value
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -1043,7 +1048,8 @@ private fun MetricListTile(
             Icon(
                 imageVector = Icons.Rounded.KeyboardArrowRight,
                 contentDescription = null,
-                tint = SO_OnSurf_D.copy(alpha = 0.6f)
+                tint = SO_OnSurf_D.copy(alpha = 0.6f),
+                modifier = Modifier.size(36.dp) // 🟢 Larger arrow
             )
         }
     }
