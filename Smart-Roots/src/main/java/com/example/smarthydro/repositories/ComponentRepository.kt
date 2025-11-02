@@ -49,8 +49,8 @@ class ComponentRepository {
 
     //The following functions are defined so that the second url can be used here - 2024
     // these have been removed in 2025
-    suspend fun toggleComponent(componentModel: ComponentModel, id:String){
-        return remoteComponentService.toggleComponent(componentModel = componentModel, id = id)
+    suspend fun toggleComponent(componentModel: ComponentModel, macAddress:String){
+        return remoteComponentService.toggleComponent(componentModel = componentModel, macAddress = macAddress)
     }
 
 }

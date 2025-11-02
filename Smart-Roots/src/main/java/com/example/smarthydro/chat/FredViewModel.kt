@@ -7,19 +7,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// ----------------- UI Models -----------------
-data class UiMsg(val role: String, val content: String)
-data class FredUiState(val messages: List<UiMsg> = emptyList(), val sending: Boolean = false)
+data class UiMsg(
+    val role: String,
+    val content: String = "",
+    val imageBytes: ByteArray? = null // now supports direct Bitmap bytes
+)
 
-// 🔑 Mapper: converts UiMsg -> ChatUiMessage (for rendering in FredChatScreen)
-fun UiMsg.toUiMessage(): ChatUiMessage =
-    if (role.equals("user", ignoreCase = true)) {
-        ChatUiMessage(text = content, from = ChatUiMessage.Sender.USER)
-    } else {
-        ChatUiMessage(text = content, from = ChatUiMessage.Sender.FRED)
-    }
+data class FredUiState(
+    val messages: List<UiMsg> = emptyList(),
+    val sending: Boolean = false
+)
 
-// ----------------- ViewModel -----------------
 class FredViewModel(
     private val agent: FredAgent
 ) : ViewModel() {
@@ -28,54 +26,48 @@ class FredViewModel(
     private val _ui = MutableStateFlow(FredUiState())
     val ui: StateFlow<FredUiState> = _ui
 
-    // ✉️ Text messages
+    // ✉️ Handle normal text
     fun send(text: String) = viewModelScope.launch {
         if (text.isBlank() || _ui.value.sending) return@launch
 
-        // Show user’s message immediately
         _ui.update { it.copy(sending = true, messages = it.messages + UiMsg("user", text)) }
 
-        // Ask Fred for a reply
         val reply = runCatching {
             agent.reply(text, history)
         }.getOrElse { th ->
             "Sorry, something went wrong: ${th.localizedMessage ?: th.javaClass.simpleName}"
         }
 
-        // Update conversation history
         history += ChatMessage("user", text)
         history += ChatMessage("assistant", reply)
 
-        // Show Fred's reply
         _ui.update { it.copy(sending = false, messages = it.messages + UiMsg("assistant", reply)) }
     }
 
-    // 📸 Image + Question messages
-    fun sendImage(question: String, imageBytes: ByteArray, mimeType: String) =
+    // 📸 Handle image + question
+    fun sendImage(question: String, bytes: ByteArray, mimeType: String = "image/jpeg") =
         viewModelScope.launch {
             if (_ui.value.sending) return@launch
 
-            // 1️⃣ Show image immediately in chat
+            // show image bubble + question immediately
             _ui.update {
+                val imageMsg = UiMsg("user", imageBytes = bytes)
+                val textMsg = if (question.isNotBlank()) UiMsg("user", question) else null
                 it.copy(
                     sending = true,
-                    messages = it.messages + UiMsg("user", "image://local_preview") +
-                            UiMsg("user", question.ifBlank { "Analyze this plant [📷]" })
+                    messages = it.messages + imageMsg + listOfNotNull(textMsg)
                 )
             }
 
-            // 2️⃣ Get reply from Fred (analyze image)
             val reply = runCatching {
-                agent.replyWithImage(question, imageBytes, mimeType, history)
+                agent.replyWithImage(question, bytes, mimeType, history)
             }.getOrElse { th ->
-                "Sorry, something went wrong: ${th.localizedMessage ?: th.javaClass.simpleName}"
+                "Sorry, something went wrong while analyzing the image: ${th.localizedMessage ?: th.javaClass.simpleName}"
             }
 
-            // 3️⃣ Update stored chat history
             history += ChatMessage("user", "Sent an image with question: $question")
             history += ChatMessage("assistant", reply)
 
-            // 4️⃣ Add Fred’s reply to chat
             _ui.update {
                 it.copy(
                     sending = false,

@@ -45,7 +45,6 @@ class TfLiteAgeClassifier(
                     score = score
                 )
             }
-            .filter { it.score >= 0.3f }
             .sortedByDescending { it.score }
             .take(topK)
     }

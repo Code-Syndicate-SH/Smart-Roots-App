@@ -44,9 +44,9 @@ object SensorService {
      * This was added in 2025 and this is a lighter weight version that is optimized to listen to live updates,
      * this is better then making get requests. Here it listens to a constant stream of data and fetches readings live.
      */
-    fun sensorStream(callback: (RemoteSensorModel) -> Unit): SensorStreamClient {
+    fun sensorStream(callback: (RemoteSensorModel) -> Unit, macAddress: String): SensorStreamClient {
         val  client  = SensorStreamClient(
-            serverUrl = "https://smart-roots-server.onrender.com/api/sensors", // adjust to your endpoint
+            serverUrl = "https://smart-roots-server.onrender.com/api/sensors/$macAddress", // adjust to your endpoint
             onMessage = callback
         )
         client.start()
