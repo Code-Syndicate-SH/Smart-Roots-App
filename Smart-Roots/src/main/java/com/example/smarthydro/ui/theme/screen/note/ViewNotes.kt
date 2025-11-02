@@ -7,10 +7,13 @@ import android.os.Environment
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,7 +29,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -43,7 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -55,8 +60,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
+import com.example.smarthydro.ui.theme.AutoBlue
+import com.example.smarthydro.ui.theme.DeepBlue
+import com.example.smarthydro.ui.theme.SO_OnSurf_D
+import com.example.smarthydro.ui.theme.SO_Surf_D
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -65,17 +72,18 @@ import com.itextpdf.text.Document
 import com.itextpdf.text.DocumentException
 import com.itextpdf.text.Paragraph
 import com.itextpdf.text.pdf.PdfWriter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import leagueSpartan
 import java.io.ByteArrayOutputStream
 import java.io.FileOutputStream
-import java.io.IOException
 
 data class Note(
     val title: String = "",
     val timestamp: Long = 0L,
     val description: String = "",
-    val image: String = ""
+    val image: String = "",
+    var decodedBitmap: Bitmap? = null
 )
 
 
@@ -84,38 +92,55 @@ class ViewNotesViewModel : ViewModel() {
     var notes by mutableStateOf<List<Note>>(emptyList())
         private set
 
-    var isLoading by mutableStateOf(true) // Add loading state
+    var isLoading by mutableStateOf(true)
 
     init {
         fetchNotes()
     }
 
     private fun fetchNotes() {
-        viewModelScope.launch {
-            database.addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val noteList = mutableListOf<Note>()
-                    for (noteSnapshot in snapshot.children) {
-                        val note = noteSnapshot.getValue(Note::class.java)
-                        note?.let { noteList.add(it) }
-                    }
-                    notes = noteList
-                    isLoading = false // Set loading to false once data is fetched
-                    Log.d("ViewNotesViewModel", "Notes fetched: ${notes.size}")
+        database.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val noteList = mutableListOf<Note>()
+                for (noteSnapshot in snapshot.children) {
+                    val note = noteSnapshot.getValue(Note::class.java)
+                    note?.let { noteList.add(it) }
                 }
 
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("ViewNotesViewModel", "Error fetching notes", error.toException())
-                    isLoading = false // Set loading to false even if there's an error
+                // OPTIMIZATION 2: Pre-decode all bitmaps on a background thread
+                viewModelScope.launch(Dispatchers.Default) {
+                    noteList.forEach { note ->
+                        if (note.image.isNotEmpty()) {
+                            // Use our optimized decoding function
+                            note.decodedBitmap = decodeBase64Image(note.image)
+                        }
+                    }
+                    // Once decoding is done, update the state on the main thread
+                    launch(Dispatchers.Main) {
+                        notes = noteList
+                        isLoading = false
+                    }
                 }
-            })
-        }
+                Log.d("ViewNotesViewModel", "Notes fetched: ${noteList.size}")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("ViewNotesViewModel", "Error fetching notes", error.toException())
+                isLoading = false
+            }
+        })
+    }
+
+    // OPTIMIZATION 3: Clear the cache when the ViewModel is no longer used
+    override fun onCleared() {
+        super.onCleared()
+        bitmapCache.clear()
     }
 }
 
 fun createPdfFromNotes(context: Context, notes: List<Note>) {
     val document = Document()
-    val filePath = "${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}/notes.pdf"
+    val filePath = "${Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)}/notes_report.pdf"
 
     try {
         PdfWriter.getInstance(document, FileOutputStream(filePath))
@@ -126,32 +151,31 @@ fun createPdfFromNotes(context: Context, notes: List<Note>) {
             document.add(Paragraph("Date: ${formatTimestamp(note.timestamp)}"))
             document.add(Paragraph("Description: ${note.description}"))
 
-            // Add image to PDF if available
-            note.image.takeIf { it.isNotEmpty() }?.let {
-                val bitmap = decodeBase64Image(it)
-                bitmap?.let { bmp ->
-                    val imageStream = ByteArrayOutputStream()
-                    bmp.compress(Bitmap.CompressFormat.PNG, 100, imageStream)
-                    val imageBytes = imageStream.toByteArray()
-                    val image = com.itextpdf.text.Image.getInstance(imageBytes)
-                    document.add(image)
-                }
+            // Use the pre-decoded bitmap if available, otherwise decode it now
+            val bitmapToUse = note.decodedBitmap ?: decodeBase64Image(note.image)
+
+            bitmapToUse?.let { bmp ->
+                val imageStream = ByteArrayOutputStream()
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, imageStream)
+                val imageBytes = imageStream.toByteArray()
+                val image = com.itextpdf.text.Image.getInstance(imageBytes)
+                image.scaleToFit(500f, 500f)
+                document.add(image)
             }
             document.add(Paragraph("\n"))
         }
 
         document.close()
-        Toast.makeText(context, "PDF created successfully!", Toast.LENGTH_SHORT).show()
-    } catch (e: DocumentException) {
+        Toast.makeText(context, "PDF saved to Downloads folder!", Toast.LENGTH_LONG).show()
+    } catch (e: Exception) { // Catch generic exception for robustness
         e.printStackTrace()
-    } catch (e: IOException) {
-        e.printStackTrace()
+        Toast.makeText(context, "Error creating PDF: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
 
 
 @Composable
-fun ViewNotes() {
+fun ViewNotes(paddingValues: PaddingValues) {
     val viewModel: ViewNotesViewModel = viewModel()
     val notes by remember { derivedStateOf { viewModel.notes } }
     val isLoading by remember { derivedStateOf { viewModel.isLoading } }
@@ -167,37 +191,41 @@ fun ViewNotes() {
 
     val snapIndex by derivedStateOf {
         val visibleItemInfos = scrollState.layoutInfo.visibleItemsInfo
-        visibleItemInfos.minByOrNull { itemInfo ->
-            val centerX = scrollState.layoutInfo.viewportSize.width / 2
-            val itemCenterX = itemInfo.offset + (itemWidthPx / 2)
-            Math.abs(itemCenterX - centerX)
-        }?.index ?: 0
+        if (visibleItemInfos.isEmpty()) {
+            0
+        } else {
+            visibleItemInfos.minByOrNull { itemInfo ->
+                val centerX = scrollState.layoutInfo.viewportSize.width / 2
+                val itemCenterX = itemInfo.offset + (itemWidthPx / 2)
+                Math.abs(itemCenterX - centerX)
+            }?.index ?: 0
+        }
     }
 
     LaunchedEffect(snapIndex) {
-        coroutineScope.launch {
-            scrollState.animateScrollToItem(snapIndex)
+        if (notes.isNotEmpty()) {
+            coroutineScope.launch {
+                scrollState.animateScrollToItem(snapIndex)
+            }
         }
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFF121212))
-            .padding(16.dp)
+            .background(color = DeepBlue)
+            .padding(paddingValues)
     ) {
         if (isLoading) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color(0xFF121212))
-                    .padding(16.dp),
+                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "Loading...",
-                    color = Color(0xff00AFEF),
-                    style = TextStyle(fontSize = 65.sp),
+                    color = AutoBlue,
+                    style = TextStyle(fontSize = 50.sp),
                     fontFamily = leagueSpartan,
                     fontWeight = FontWeight.Bold,
                 )
@@ -206,9 +234,10 @@ fun ViewNotes() {
             LazyRow(
                 state = scrollState,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 32.dp)
             ) {
-                itemsIndexed(notes) { index, note ->
+                itemsIndexed(notes, key = { _, note -> note.timestamp }) { index, note ->
                     val viewportWidthPx = scrollState.layoutInfo.viewportSize.width.toFloat()
                     val itemOffsetPx = scrollState.layoutInfo.visibleItemsInfo
                         .find { it.index == index }?.offset ?: 0
@@ -216,41 +245,47 @@ fun ViewNotes() {
                     val centerX = viewportWidthPx / 2
                     val distanceFromCenter = itemCenterPx - centerX
 
-                    val maxScale = 1.1f
-                    val minScale = 0.9f
-                    val scale = maxScale - (Math.abs(distanceFromCenter) / (viewportWidthPx / 2)) * (maxScale - minScale)
+                    val maxScale = 1.05f
+                    val minScale = 0.85f
+                    val scaleRange = maxScale - minScale
+                    val scale = maxScale - (Math.abs(distanceFromCenter) / (viewportWidthPx / 2)) * scaleRange
 
                     val offsetX = (distanceFromCenter / viewportWidthPx) * maxOffsetPx
 
+                    // OPTIMIZATION 4: Stabilize the lambda by remembering it.
+                    val onDownloadClick = remember(context, note) {
+                        { createPdfFromNotes(context, listOf(note)) }
+                    }
+
                     NoteCard(
                         note = note,
-                        onDownloadClick = {
-                            createPdfFromNotes(context, listOf(note))
-                        },
+                        onDownloadClick = onDownloadClick,
                         modifier = Modifier
                             .graphicsLayer(
-                                scaleX = scale,
-                                scaleY = scale
+                                scaleX = scale.toFloat(),
+                                scaleY = scale.toFloat()
                             )
-                            .padding(10.dp)
-                            .padding(start = 8.dp)
                             .width(320.dp)
-                            .height(700.dp)
+                            .height(650.dp)
                             .offset(x = offsetX.toDp(density))
                     )
                 }
             }
         } else {
-            Text(
-                "No notes available",
-                color = Color.White,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "No notes available",
+                    color = SO_OnSurf_D,
+                    style = TextStyle(fontSize = 24.sp, fontFamily = leagueSpartan),
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
         }
     }
 }
-
-
 
 
 @Composable
@@ -262,45 +297,54 @@ fun Float.toDp(density: Float): Dp {
 @Composable
 fun NoteCard(note: Note, onDownloadClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = Color.White,
+        shape = RoundedCornerShape(20.dp),
+        color = SO_Surf_D,
+        border = BorderStroke(1.dp, AutoBlue.copy(alpha = 0.6f)),
         modifier = modifier
             .padding(1.dp)
-            .offset(y = 16.dp)
             .graphicsLayer {
-                shadowElevation = 20.dp.toPx()
+                shadowElevation = 8.dp.toPx()
             },
-        shadowElevation = 20.dp
+        shadowElevation = 8.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp)
+                .padding(16.dp)
         ) {
-            AsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(Base64.decode(note.image, Base64.DEFAULT))
-                    .crossfade(true)
-                    .build(),
-                contentDescription = null,
-                modifier = Modifier
+            // OPTIMIZATION 5: Use the pre-decoded bitmap. This is MUCH faster.
+            val bitmap = note.decodedBitmap
+            if (bitmap != null) {
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Note Image",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .background(Color.Gray, shape = RoundedCornerShape(12.dp))
+                )
+            } else {
+                // Fallback Box if there is no image or it failed to decode
+                Box(modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-            )
+                    .background(Color.Gray, shape = RoundedCornerShape(12.dp)))
+            }
 
-            Spacer(modifier = Modifier.height(15.dp))
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             Text(
                 text = note.title,
                 style = TextStyle(
                     fontFamily = leagueSpartan,
-                    fontSize = 35.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Black
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = SO_OnSurf_D
                 ),
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             )
 
             Text(
@@ -308,14 +352,13 @@ fun NoteCard(note: Note, onDownloadClick: () -> Unit, modifier: Modifier = Modif
                 style = TextStyle(
                     fontFamily = leagueSpartan,
                     fontSize = 14.sp,
-                    color = Color.Gray
+                    color = SO_OnSurf_D.copy(alpha = 0.7f)
                 ),
                 textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
+                modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Box(
                 modifier = Modifier
@@ -331,41 +374,39 @@ fun NoteCard(note: Note, onDownloadClick: () -> Unit, modifier: Modifier = Modif
                         style = TextStyle(
                             fontFamily = leagueSpartan,
                             fontSize = 16.sp,
-                            color = Color.Gray
+                            color = SO_OnSurf_D.copy(alpha = 0.85f)
                         ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp)
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
             }
             Button(
                 onClick = { onDownloadClick() },
-                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                colors = ButtonDefaults.buttonColors(containerColor = AutoBlue),
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(8.dp)
+                    .fillMaxWidth()
             ) {
                 Icon(
-                    imageVector = Icons.Filled.Info,
-                    contentDescription = "Info",
-                    modifier = Modifier.size(24.dp), // Adjust size as needed
-                    tint = Color(0xFF121212) // Set icon color to match text
+                    imageVector = Icons.Filled.Download,
+                    contentDescription = "Download",
+                    modifier = Modifier.size(24.dp),
+                    tint = Color.White
                 )
-                Spacer(modifier = Modifier.width(8.dp)) // Space between icon and text
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Download PDF",
-                    color = Color(0xFF121212) // Set the text color to 0xFF121212
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
                 )
             }
-
-
         }
     }
 }
 
 
-// Utility function to format timestamp
 private fun formatTimestamp(timestamp: Long): String {
     val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
     val date = java.util.Date(timestamp)
@@ -380,30 +421,33 @@ fun Dp.toPx(density: Float): Float {
 private val bitmapCache = mutableMapOf<String, Bitmap?>()
 
 private fun decodeBase64Image(base64String: String): Bitmap? {
-    return bitmapCache[base64String] ?: try {
+    if (base64String.isEmpty()) return null
+    // Use the string's hashcode as a key for caching, it's more efficient than the whole string
+    val key = base64String.hashCode().toString()
+    if (bitmapCache.containsKey(key)) {
+        return bitmapCache[key]
+    }
+
+    return try {
         val decodedBytes = Base64.decode(base64String, Base64.DEFAULT)
         val options = BitmapFactory.Options().apply {
             inJustDecodeBounds = true
             BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size, this)
-            val imageHeight = outHeight
-            val imageWidth = outWidth
-            val reqWidth = 200 // target width in pixels
-            val reqHeight = 200 // target height in pixels
-            inSampleSize = calculateInSampleSize(this, reqWidth, reqHeight)
+            inSampleSize = calculateInSampleSize(this, 512, 512)
             inJustDecodeBounds = false
         }
         val bitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size, options)
-        bitmapCache[base64String] = bitmap
+        bitmapCache[key] = bitmap
         bitmap
     } catch (e: IllegalArgumentException) {
-        Log.e("NoteCard", "Invalid Base64 string", e)
+        Log.e("NoteCard", "Invalid Base64 string for image decoding", e)
         null
     }
 }
 
 
 private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
-    val (width: Int, height: Int) = options.outWidth to options.outHeight
+    val (height: Int, width: Int) = options.outHeight to options.outWidth
     var inSampleSize = 1
     if (height > reqHeight || width > reqWidth) {
         val halfHeight = height / 2
@@ -414,4 +458,3 @@ private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int,
     }
     return inSampleSize
 }
-

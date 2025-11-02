@@ -1,143 +1,128 @@
 package com.example.smarthydro.ui.theme.screen.note
 
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
-import coil.decode.GifDecoder
-import coil.request.ImageRequest
-import coil.size.Size
 import com.example.smarthydro.R
 import com.example.smarthydro.domain.HapticFeedback
+import com.example.smarthydro.ui.theme.AutoBlue
+import com.example.smarthydro.ui.theme.DeepBlue
+import com.example.smarthydro.ui.theme.SO_OnSurf_D
+import com.example.smarthydro.ui.theme.SO_Surf_D
 import leagueSpartan
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun NoteScreen(navController: NavController, context: Context) {
+fun NoteScreen(navController: NavController, context: Context, padding: PaddingValues) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFF121212)),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+            .background(color = DeepBlue) // Themed background
+            .padding(padding),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(50.dp)) // Increase top padding
+        Spacer(modifier = Modifier.height(50.dp))
 
-        Image(
-            painter = painterResource(id = R.drawable.autonotes),
-            contentDescription = "Sawubona umlimi 👩‍🌾",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-        )
 
-        Spacer(modifier = Modifier.height(20.dp)) // Increase space between image and buttons
+        Spacer(modifier = Modifier.height(40.dp))
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = Color(0xFF121212)),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+            verticalArrangement = Arrangement.spacedBy(24.dp) // Manages space between buttons
         ) {
-            Button(
+            ThemedNoteButton(
+                text = "New Entry",
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "New Entry",
+                        modifier = Modifier.size(64.dp),
+                        tint = Color.White
+                    )
+                },
+                containerColor = AutoBlue,
+                contentColor = Color.White,
                 onClick = {
-                    //  button click action
-                    val hapticFeedback =  HapticFeedback()
+                    val hapticFeedback = HapticFeedback()
                     hapticFeedback(context)
                     navController.navigate("WriteToNote")
-
-                },
-                modifier = Modifier
-                    .padding(10.dp)
-                    .size(width = 330.dp, height = 240.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xff00AFEF))
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val painter = rememberAsyncImagePainter(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(R.drawable.buttonation)
-                            .decoderFactory(GifDecoder.Factory())
-                            .size(Size.ORIGINAL)
-                            .build()
-                    )
-                    Image(
-                        painter = painter,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Text(
-                        text = "New Entry",
-                        fontSize = 40.sp,
-                        fontFamily = leagueSpartan,
-                        color = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
                 }
-            }
+            )
 
-            Spacer(modifier = Modifier.height(20.dp)) // Increase space between buttons
-
-            Button(
+            ThemedNoteButton(
+                text = "My Notes",
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.ListAlt,
+                        contentDescription = "My Notes",
+                        modifier = Modifier.size(64.dp),
+                        tint = SO_OnSurf_D
+                    )
+                },
+                containerColor = SO_Surf_D,
+                contentColor = SO_OnSurf_D,
+                border = BorderStroke(1.dp, AutoBlue.copy(alpha = 0.6f)),
                 onClick = {
                     navController.navigate("ViewNotes")
-                },
-                modifier = Modifier
-                    .padding(10.dp)
-                    .size(width = 330.dp, height = 240.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8CF45))
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val painter = rememberAsyncImagePainter(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(R.drawable.buttonview)
-                            .decoderFactory(GifDecoder.Factory())
-                            .size(Size.ORIGINAL)
-                            .build()
-                    )
-                    Image(
-                        painter = painter,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    Text(
-                        text = "My Notes",
-                        fontSize = 40.sp,
-                        fontFamily = leagueSpartan,
-                        color = Color.White,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
                 }
-            }
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemedNoteButton(
+    text: String,
+    icon: @Composable () -> Unit,
+    containerColor: Color,
+    contentColor: Color,
+    onClick: () -> Unit,
+    border: BorderStroke? = null
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(220.dp), // Adjusted height for a cleaner look
+        shape = RoundedCornerShape(20.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = containerColor),
+        border = border,
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            icon()
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = text,
+                fontSize = 32.sp,
+                fontFamily = leagueSpartan,
+                fontWeight = FontWeight.Bold,
+                color = contentColor
+            )
         }
     }
 }

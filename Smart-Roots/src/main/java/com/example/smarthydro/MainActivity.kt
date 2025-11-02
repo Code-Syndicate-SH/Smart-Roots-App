@@ -420,11 +420,12 @@ fun NavAppHost(
             composable(Destination.NoteScreen.route) {
                 NoteScreen(
                     navController = navController,
-                    context
+                    context,
+                    padding
                 )
             }
             composable("WriteToNote") { WriteToNote() }
-            composable("ViewNotes") { ViewNotes() }
+            composable("ViewNotes") { ViewNotes(padding) }
 
 
             composable(Destination.Fred.route) {
