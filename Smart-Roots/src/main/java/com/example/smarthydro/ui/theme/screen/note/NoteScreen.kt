@@ -6,134 +6,177 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import coil.size.Size
 import com.example.smarthydro.R
 import com.example.smarthydro.domain.HapticFeedback
 import leagueSpartan
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NoteScreen(navController: NavController, context: Context) {
+fun NoteScreen(
+    navController: NavController,
+    context: Context
+) {
+    val cs = MaterialTheme.colorScheme
+    val lc = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFF121212)),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+            .background(cs.background)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(50.dp)) // Increase top padding
 
-        Image(
-            painter = painterResource(id = R.drawable.autonotes),
-            contentDescription = "Sawubona umlimi 👩‍🌾",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(100.dp)
-        )
-
-        Spacer(modifier = Modifier.height(20.dp)) // Increase space between image and buttons
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = Color(0xFF121212)),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+        // Header chip (Notes • Open) like the video
+        Surface(
+            color = cs.surface,
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    color = cs.secondary,
+                    shape = CircleShape,
+                    modifier = Modifier.size(36.dp)
+                ) {}
+                Spacer(Modifier.size(12.dp))
+                Column {
+                    Text(
+                        text = "Notes",
+                        color = cs.onSurface.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        text = "Open",
+                        color = cs.onSurface,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // Two big cards: "New Entry" and "My Notes"
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            // New Entry (keeps your haptics + GIF background)
             Button(
                 onClick = {
-                    //  button click action
-                    val hapticFeedback =  HapticFeedback()
-                    hapticFeedback(context)
+                    HapticFeedback()(context)
                     navController.navigate("WriteToNote")
-
                 },
                 modifier = Modifier
-                    .padding(10.dp)
-                    .size(width = 330.dp, height = 240.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xff00AFEF))
+                    .weight(1f)
+                    .height(160.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = cs.primary,
+                    contentColor = cs.onPrimary
+                )
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val painter = rememberAsyncImagePainter(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(R.drawable.buttonation)
-                            .decoderFactory(GifDecoder.Factory())
-                            .size(Size.ORIGINAL)
-                            .build()
-                    )
+                Box(Modifier.fillMaxSize()) {
                     Image(
-                        painter = painter,
+                        painter = rememberAsyncImagePainter(
+                            model = ImageRequest.Builder(lc)
+                                .data(R.drawable.buttonation) // your animated asset
+                                .decoderFactory(
+                                    // use ImageDecoder on API 28+, else GifDecoder
+                                    if (android.os.Build.VERSION.SDK_INT >= 28)
+                                        ImageDecoderDecoder.Factory()
+                                    else GifDecoder.Factory()
+                                )
+                                .size(Size.ORIGINAL)
+                                .build()
+                        ),
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp)),
+                        contentScale = ContentScale.Crop
                     )
                     Text(
                         text = "New Entry",
-                        fontSize = 40.sp,
                         fontFamily = leagueSpartan,
-                        color = Color.White,
+                        fontSize = 28.sp,
+                        color = cs.onPrimary,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp)) // Increase space between buttons
-
+            // My Notes
             Button(
-                onClick = {
-                    navController.navigate("ViewNotes")
-                },
+                onClick = { navController.navigate("ViewNotes") },
                 modifier = Modifier
-                    .padding(10.dp)
-                    .size(width = 330.dp, height = 240.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFA8CF45))
+                    .weight(1f)
+                    .height(160.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = cs.tertiary,
+                    contentColor = cs.onTertiary
+                )
             ) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    val painter = rememberAsyncImagePainter(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(R.drawable.buttonview)
-                            .decoderFactory(GifDecoder.Factory())
-                            .size(Size.ORIGINAL)
-                            .build()
-                    )
+                Box(Modifier.fillMaxSize()) {
                     Image(
-                        painter = painter,
+                        painter = rememberAsyncImagePainter(
+                            model = ImageRequest.Builder(lc)
+                                .data(R.drawable.buttonview) // your animated/video-like background
+                                .decoderFactory(
+                                    if (android.os.Build.VERSION.SDK_INT >= 28)
+                                        ImageDecoderDecoder.Factory()
+                                    else GifDecoder.Factory()
+                                )
+                                .size(Size.ORIGINAL)
+                                .build()
+                        ),
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(16.dp)),
+                        contentScale = ContentScale.Crop
                     )
                     Text(
                         text = "My Notes",
-                        fontSize = 40.sp,
                         fontFamily = leagueSpartan,
-                        color = Color.White,
+                        fontSize = 28.sp,
+                        color = cs.onTertiary,
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }

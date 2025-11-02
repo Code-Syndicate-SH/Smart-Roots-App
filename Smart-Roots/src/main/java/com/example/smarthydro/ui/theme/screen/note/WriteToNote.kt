@@ -27,8 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,7 +59,7 @@ import kotlinx.coroutines.tasks.await
 import java.io.ByteArrayOutputStream
 import java.io.File
 
-// ViewModel to handle Realtime Database operations
+// ---------- ViewModel (kept as in your file) ----------
 class NoteViewModel : ViewModel() {
     private val database = FirebaseDatabase.getInstance().reference
 
@@ -66,19 +68,14 @@ class NoteViewModel : ViewModel() {
         if (noteId != null && imageUri != null) {
             viewModelScope.launch {
                 try {
-                    // Convert the image to a Base64 string
                     val imageBase64 = convertImageToBase64(imageUri, context)
-
-                    // Get the current time in milliseconds
                     val timestamp = System.currentTimeMillis()
-
                     val note = mapOf(
                         "title" to title,
                         "description" to description,
                         "image" to imageBase64,
-                        "timestamp" to timestamp  // Add this line
+                        "timestamp" to timestamp
                     )
-
                     database.child("notes").child(noteId).setValue(note).await()
                     Log.d("NoteViewModel", "Note added successfully")
                 } catch (e: Exception) {
@@ -88,74 +85,60 @@ class NoteViewModel : ViewModel() {
         }
     }
 
-
     private fun convertImageToBase64(imageUri: Uri, context: Context): String {
         val inputStream = context.contentResolver.openInputStream(imageUri)
         val bitmap = BitmapFactory.decodeStream(inputStream)
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
-        val byteArray = byteArrayOutputStream.toByteArray()
+        val output = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+        val byteArray = output.toByteArray()
         return Base64.encodeToString(byteArray, Base64.DEFAULT)
     }
 }
 
+// ---------- UI (same structure; themed; fixed smart-cast) ----------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WriteToNote() {
+    val cs = MaterialTheme.colorScheme
     val context = LocalContext.current
     val viewModel: NoteViewModel = viewModel()
 
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    // Keep this as state, but never pass it directly to launch()
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val leagueSpartan = FontFamily(Font(R.font.leaguespartan_semibold))
-    val customOutlinedTextFieldColors = TextFieldDefaults.outlinedTextFieldColors(
-        focusedTextColor = Color.Black, // For when the field is focused
-        unfocusedTextColor = Color.Black, // Optional, for when the field is not focused
-        focusedBorderColor = Color(0xff00AFEF),
-        cursorColor = Color.Black
-    )
 
-
+    // Gallery picker (unchanged)
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        imageUri = uri
-    }
+    ) { uri: Uri? -> imageUri = uri }
 
-    fun createImageFile(context: Context): Uri {
-        val storageDir = File(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "AutoGrow"
-        )
-        if (!storageDir.exists()) {
-            storageDir.mkdirs()
-        }
-        val photoFile = File(storageDir, "photo_${System.currentTimeMillis()}.jpg")
-        return FileProvider.getUriForFile(context, "${context.packageName}.provider", photoFile)
-    }
-
+    // Camera capture (TakePicture expects a non-null Uri)
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
-    ) { success: Boolean ->
+    ) { success ->
         if (success) {
-            Toast.makeText(context, "Photo captured successfully", Toast.LENGTH_SHORT).show()
-            capturedImageUri?.let { uri ->
-                imageUri = uri
-            }
+            Toast.makeText(context, "Photo captured", Toast.LENGTH_SHORT).show()
+            // No smart cast: just use the state value safely
+            imageUri = capturedImageUri
         } else {
             capturedImageUri = null
             Toast.makeText(context, "Failed to capture photo", Toast.LENGTH_SHORT).show()
         }
     }
 
-    val requestCameraPermissionLauncher = rememberLauncherForActivityResult(
+    // Permission request (FIX: create a local val for the Uri and pass that to launch)
+    val requestCameraPermission = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            cameraLauncher.launch(createImageFile(context))
+    ) { granted ->
+        if (granted) {
+            val uri: Uri = createImageFile(context) // local non-null value
+            capturedImageUri = uri                  // keep in state for later use
+            cameraLauncher.launch(uri)              // pass the local val (prevents smart-cast error)
         } else {
             Toast.makeText(context, "Camera permission denied", Toast.LENGTH_SHORT).show()
         }
@@ -164,130 +147,170 @@ fun WriteToNote() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = Color(0xFF121212))
+            .background(cs.background)
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .background(Color(0xFF121212), RoundedCornerShape(10.dp))
+        // Header chip (Notes • Open)
+        Surface(
+            color = cs.surface,
+            shape = RoundedCornerShape(20.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            if (imageUri != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(imageUri),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Button(
-                onClick = { galleryLauncher.launch("image/*") },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(5.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xff00AFEF),
-                    contentColor = Color(0xFF121212)
-                )
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "Upload Image",
-                    style = TextStyle(fontFamily = leagueSpartan)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Button(
-                onClick = {
-                    requestCameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(5.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFA8CF45),
-                    contentColor = Color(0xFF121212)
-                )
-            ) {
-                Text(
-                    "Take Photo",
-                    style = TextStyle(fontFamily = leagueSpartan)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        TextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text("Title", style = TextStyle(fontFamily = leagueSpartan)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White, RoundedCornerShape(10.dp)),
-            colors = customOutlinedTextFieldColors
-        )
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        TextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text("Description", style = TextStyle(fontFamily = leagueSpartan)) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .background(Color.White, RoundedCornerShape(10.dp)),
-            colors = customOutlinedTextFieldColors
-        )
-
-        Spacer(modifier = Modifier.height(22.dp))
-
-        Button(
-            onClick = {
-                if (title.isNotEmpty() && description.isNotEmpty() && imageUri != null) {
-                    viewModel.addNote(title, description, imageUri, context)
-                    title = ""
-                    description = ""
-                    imageUri = null
-                    capturedImageUri = null
-                } else {
-                    Toast.makeText(context, "Please fill in all fields and add an image", Toast.LENGTH_SHORT).show()
+                Surface(
+                    color = cs.secondary,
+                    shape = RoundedCornerShape(100),
+                    modifier = Modifier
+                        .width(36.dp)
+                        .height(36.dp)
+                ) {}
+                Spacer(Modifier.width(12.dp))
+                Column {
+                    Text("Notes", color = cs.onSurface.copy(alpha = 0.7f))
+                    Text("Open", color = cs.onSurface, style = MaterialTheme.typography.headlineSmall)
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF9D21),
-                contentColor = Color(0xFF121212)
-            )
-        ) {
-            Text(
-                "Save Note",
-                style = TextStyle(fontFamily = leagueSpartan, fontSize = 18.sp)
-            )
+            }
         }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Card like your video
+        Surface(
+            color = cs.surface,
+            shape = RoundedCornerShape(24.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+
+                Text(
+                    "Write a note",
+                    color = cs.onSurface,
+                    style = MaterialTheme.typography.titleMedium.copy(fontFamily = leagueSpartan)
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title", fontFamily = leagueSpartan) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = cs.primary,
+                        unfocusedBorderColor = cs.secondary,
+                        cursorColor = cs.primary,
+                        focusedLabelColor = cs.onSurface.copy(alpha = 0.8f),
+                        unfocusedLabelColor = cs.onSurface.copy(alpha = 0.7f),
+                        focusedTextColor = cs.onSurface
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Body", fontFamily = leagueSpartan) },
+                    minLines = 4,
+                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                        focusedBorderColor = cs.primary,
+                        unfocusedBorderColor = cs.secondary,
+                        cursorColor = cs.primary,
+                        focusedLabelColor = cs.onSurface.copy(alpha = 0.8f),
+                        unfocusedLabelColor = cs.onSurface.copy(alpha = 0.7f),
+                        focusedTextColor = cs.onSurface
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(120.dp)
+                )
+
+                if (imageUri != null) {
+                    Spacer(Modifier.height(12.dp))
+                    Surface(
+                        color = cs.surface,
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(imageUri),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = { requestCameraPermission.launch(Manifest.permission.CAMERA) },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = cs.primary,
+                            contentColor = cs.onPrimary
+                        )
+                    ) {
+                        Text("Take picture", fontFamily = leagueSpartan)
+                    }
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Button(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.Transparent,
+                            contentColor = cs.onSurface
+                        )
+                    ) {
+                        Text("Add picture", fontFamily = leagueSpartan)
+                    }
+
+                    Spacer(Modifier.weight(1f))
+
+                    Button(
+                        onClick = {
+                            if (title.isNotEmpty() && description.isNotEmpty() && imageUri != null) {
+                                viewModel.addNote(title, description, imageUri, context)
+                                title = ""; description = ""; imageUri = null; capturedImageUri = null
+                                Toast.makeText(context, "Saved", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, "Please complete all fields", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = cs.primary,
+                            contentColor = cs.onPrimary
+                        )
+                    ) {
+                        Text("Save", fontFamily = leagueSpartan)
+                    }
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
     }
+}
+
+// ---------- Helper (same path/signature as yours) ----------
+private fun createImageFile(context: Context): Uri {
+    val storageDir = File(
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+        "AutoGrow"
+    )
+    if (!storageDir.exists()) storageDir.mkdirs()
+    val photoFile = File(storageDir, "photo_${System.currentTimeMillis()}.jpg")
+    return FileProvider.getUriForFile(context, "${context.packageName}.provider", photoFile)
 }
