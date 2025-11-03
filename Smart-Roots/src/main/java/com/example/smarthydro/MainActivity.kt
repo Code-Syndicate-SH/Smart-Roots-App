@@ -424,7 +424,7 @@ fun NavAppHost(
                     padding
                 )
             }
-            composable("WriteToNote") { WriteToNote() }
+            composable("WriteToNote") { WriteToNote(padding) }
             composable("ViewNotes") { ViewNotes(padding) }
 
 

@@ -201,7 +201,7 @@ fun WriteToNote(padding: PaddingValues) {
     ) {
         Spacer(modifier = Modifier.height(20.dp))
 
-        // --- Themed Image Preview Box ---
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
